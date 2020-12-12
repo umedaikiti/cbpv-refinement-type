@@ -25,9 +25,25 @@ let rec cbv_type = function
   | Lambda.SumType (a, b) -> SumType (cbv_type a, cbv_type b)
   | Lambda.PairType (a, b) -> PairType (cbv_type a, cbv_type b)
 
+
+(* func : a0 -> .. -> an -> F b ==> return_thunk_lambda_app func [(x0, a0); ..; (xn : an)] b : FU(a0 -> ... FU(an -> Fb)) *)
+let return_thunk_lambda_app func args body_ty =
+  let rec app_repeat args func =
+    match args with
+    | [] -> func
+    | (x, _)::args' ->
+        let func' = Term.App (func, Term.TmVar x, List.fold_right args' ~f:(fun (_, b) ty -> Type.FunctionType (b, ty)) ~init:(Type.FType body_ty)) in
+        app_repeat args' func' in
+  List.fold_right args ~f:(fun (x, ty) body -> Term.Return (Term.Thunk (Term.Lambda (x, ty, body)))) ~init:(app_repeat args func)
+
+let op_cbv_term_default op args ret_ty =
+  return_thunk_lambda_app (Term.Force (Term.Const op, List.fold_right args ~f:(fun (_, b) ty -> Type.FunctionType (b, ty)) ~init:(Type.FType ret_ty))) args ret_ty
+
 let op_cbv_term = function
   | Int n -> Term.Return (Term.Const (Term.Int n))
-  | Add -> Term.Return (Term.Thunk (Term.Lambda ("#x", Type.IntType, Term.Return (Term.Thunk (Term.Lambda ("#y", Type.IntType, Term.App (Term.App(Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType)))), Term.TmVar "#x", Type.(FunctionType (IntType, FType IntType))), Term.TmVar "#y", Type.FType Type.IntType)))))))
+(*  | Add -> Term.Return (Term.Thunk (Term.Lambda ("#x", Type.IntType, Term.Return (Term.Thunk (Term.Lambda ("#y", Type.IntType, Term.App (Term.App(Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType)))), Term.TmVar "#x", Type.(FunctionType (IntType, FType IntType))), Term.TmVar "#y", Type.FType Type.IntType)))))))*)
+(*  | Add -> return_thunk_lambda_app (Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType))))) [("#x", Type.IntType); ("#y", Type.IntType)] Type.IntType*)
+  | Add -> op_cbv_term_default Term.Add [("#x", Type.IntType); ("#y", Type.IntType)] Type.IntType
 
 let rec cbv_term = function
   | Var x -> Term.Return (Term.TmVar x)

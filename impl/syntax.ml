@@ -119,9 +119,12 @@ module Term = struct
     | Int n -> string_of_int n
     | Add -> "(+)"
 
+  let type_of_operation arg_types body_type =
+    Type.UType (List.fold_right arg_types ~f:(fun arg body -> Type.FunctionType (arg, body)) ~init:(Type.FType body_type))
+
   let type_of_const = function
     | Int n -> Type.IntType
-    | Add -> Type.UType (Type.FunctionType (Type.IntType, Type.FunctionType (Type.IntType, Type.FType Type.IntType)))
+    | Add -> type_of_operation [Type.IntType; Type.IntType] Type.IntType
 
 
   let rec value_to_string = function

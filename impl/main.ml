@@ -77,6 +77,9 @@ let rec refinement_template_value ctx =
     | Type.FType a -> FType (refinement_template_value ctx a)
     | Type.CompTyVar _ -> failwith "type variables are not allowed"
 
+let refinement_type_of_operation args body_type =
+  UType (List.fold_right args ~f:(fun (var, ty) body -> FunctionType (var, ty, body)) ~init:(FType body_type))
+
 let refinement_type_of_const = function
   | Term.Int n -> 
       let x = mk_fresh_term_var () in
@@ -85,7 +88,7 @@ let refinement_type_of_const = function
       let x = mk_fresh_term_var () in
       let y = mk_fresh_term_var () in
       let z = mk_fresh_term_var () in
-      UType (FunctionType (x, RefinedIntType (x, Logic.Formula.True), FunctionType (y, RefinedIntType (y, Logic.Formula.True), FType (RefinedIntType (z, Logic.(Formula.Equal (TmVar z, Operation (Add, [TmVar x; TmVar y]))))))))
+      refinement_type_of_operation [(x, RefinedIntType (x, Logic.Formula.True)); (y, RefinedIntType (y, Logic.Formula.True))] (RefinedIntType (z, Logic.(Formula.Equal (TmVar z, Operation (Add, [TmVar x; TmVar y])))))
 
 (* constraints = context & predicate in the context *)
 let rec value_verification_condition ctx = function
