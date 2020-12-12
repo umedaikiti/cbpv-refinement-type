@@ -1,0 +1,70 @@
+\documentclass[draft]{llncs}
+
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage[pdfusetitle]{hyperref}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{stmaryrd}
+\usepackage{mathtools}
+\mathtoolsset{showonlyrefs=true}
+\usepackage{tikz,pgfplots}
+\usetikzlibrary{cd}
+\tikzset{%
+    symbol/.style={%
+        draw=none,
+        every to/.append style={%
+            edge node={node [sloped, allow upside down, auto=false]{$#1$}}}
+    }
+}
+\usepackage{bussproofs}
+\usepackage{mathpartir}
+
+\usepackage{ifthen}
+\newboolean{longversion}
+\ifthenelse{\equal{\detokenize{long}}{\jobname}}{
+	\setboolean{longversion}{true}
+}{
+	\setboolean{longversion}{false}
+}
+\newcommand{\referappendix}[2]{\ifthenelse{\boolean{longversion}}{\S\ref{#1}}{\cite[Appendix {#2}]{}}}
+
+\spnewtheorem{mytheorem}{Theorem}{\bfseries}{\itshape}
+\spnewtheorem{mylemma}[mytheorem]{Lemma}{\bfseries}{\itshape}
+\spnewtheorem{myproposition}[mytheorem]{Proposition}{\bfseries}{\itshape}
+\spnewtheorem{mysublemma}[mytheorem]{Sublemma}{\bfseries}{\itshape}
+\spnewtheorem{mycorollary}[mytheorem]{Corollary}{\bfseries}{\itshape}
+\spnewtheorem{myfact}[mytheorem]{Fact}{\bfseries}{\itshape}
+%\theorembodyfont{\rmfamily}
+\spnewtheorem{mynotation}[mytheorem]{Notation}{\bfseries}{\rmfamily}
+\spnewtheorem{myremark}[mytheorem]{Remark}{\bfseries}{\rmfamily}
+\spnewtheorem{myexample}[mytheorem]{Example}{\bfseries}{\rmfamily}
+\spnewtheorem{myassumption}[mytheorem]{Assumption}{\bfseries}{\rmfamily}
+\spnewtheorem{mydefinition}[mytheorem]{Definition}{\bfseries}{\rmfamily}
+\spnewtheorem{myrequirements}[mytheorem]{Requirements}{\bfseries}{\rmfamily}
+\spnewtheorem{myproblem}[mytheorem]{Problem}{\bfseries}{\rmfamily}
+%\spnewtheorem*{myproof}{Proof}{\itshape}{\rmfamily}
+\spnewtheorem{myconjecture}[mytheorem]{Conjecture}{\bfseries}{\rmfamily}
+
+\usepackage{macros.basic}
+
+\title{title}
+\author{Satoshi Kura\inst{1,2}\orcidID{0000-0002-3954-8255}}
+\institute{National Institute of Informatics, Tokyo, Japan
+\and The Graduate University for Advanced Studies (SOKENDAI), Kanagawa, Japan}
+
+\begin{document}
+%\setlength{\abovedisplayskip}{3pt}
+%\setlength{\belowdisplayskip}{3pt}
+%\setlength{\abovedisplayshortskip}{3pt}
+%\setlength{\belowdisplayshortskip}{3pt}
+\section{Unification}
+
+\section{Type System}
+
+\section{Type Inference}
+
+\bibliographystyle{splncs04}
+\bibliography{ref}
+
+\end{document}
