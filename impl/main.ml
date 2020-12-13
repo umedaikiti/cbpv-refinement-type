@@ -165,6 +165,11 @@ and computation_verification_condition ctx = function
           let constraints_sub_n = subtype_computation (ListContext.add ctx y b) tyn ty in
           constraints_m @ constraints_n @ constraints_sub_m @ constraints_sub_n, ty
       | _ -> failwith "type mismatch")
+  | Fix (x, c, m) ->
+      let c' = refinement_template_computation ctx c in
+      let constraints, ty = computation_verification_condition (ListContext.add ctx x (Refinement.UType c')) m in
+      let constraints_sub = subtype_computation ctx ty c' in
+      constraints @ constraints_sub, c'
 
 let rec simplify_constraint' ctx fml =
   let open Logic in

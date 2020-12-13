@@ -69,5 +69,10 @@ and computation_infer ctx = function
       let constraints = Constraints.append constraints (Type.Substitution.constraints_of mm) in
       let constraints = Constraints.append constraints (Type.Substitution.constraints_of mn) in
       Option.value_exn (unify Type.Substitution.empty constraints), tym
+  | Fix (x, c, m) ->
+      let map, ty = computation_infer (Map.add_exn ctx x (Type.UType c)) m in
+      let constraints = Constraints.append ([], [(c, ty)]) (Type.Substitution.constraints_of map) in
+      Option.value_exn (unify Type.Substitution.empty constraints), c
+
 
 

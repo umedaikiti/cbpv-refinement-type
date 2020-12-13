@@ -114,6 +114,7 @@ module Term = struct
     | App of computation * value * Type.computation
     | PatternMatch of value * string * Type.value * string * Type.value * computation
     | Case of value * string * Type.value * computation * string * Type.value * computation
+    | Fix of string * Type.computation * computation
 
   let constant_to_string = function
     | Int n -> string_of_int n
@@ -143,6 +144,7 @@ module Term = struct
     | App (c, v, _ty) -> computation_to_string c ^ " @ " ^ value_to_string v (* ^ " : " ^ Type.computation_to_string ty *)
     | PatternMatch (v, x, a, y, b, m) -> "pm " ^ value_to_string v ^ " to (" ^ x ^ " : " ^ Type.value_to_string a ^ ", " ^ y ^ " : " ^ Type.value_to_string b ^ " in " ^ computation_to_string m ^ ")"
     | Case (v, x, a, m, y, b, n) -> Printf.sprintf "case %s of [inl (%s : %s) -> %s; inr (%s : %s) -> %s]" (value_to_string v) x (Type.value_to_string a) (computation_to_string m) y (Type.value_to_string b) (computation_to_string n)
+    | Fix (x, c, m) -> Printf.sprintf "fix (%s : U %s). %s" x (Type.computation_to_string c) (computation_to_string m)
 
   (*let rec free_type_var_in_value and free_type_var_in_computation*)
   (*let rec free_term_var_in_value and free_term_var_in_computation*)
@@ -162,6 +164,7 @@ module Term = struct
     | App (c, v, ty) -> App (computation_subst_type map c, value_subst_type map v, Type.Substitution.computation_subst map ty)
     | PatternMatch (v, x, a, y, b, m) -> PatternMatch (value_subst_type map v, x, Type.Substitution.value_subst map a, y, Type.Substitution.value_subst map b, computation_subst_type map m)
     | Case (v, x, a, m, y, b, n) -> Case (value_subst_type map v, x, Type.Substitution.value_subst map a, computation_subst_type map m, y, Type.Substitution.value_subst map b, computation_subst_type map n)
+    | Fix (x, c, m) -> Fix (x, Type.Substitution.computation_subst map c, computation_subst_type map m)
 
   let rec subst_value_term map = function
     | TmVar x -> (match Map.find map x with Some t -> t | None -> TmVar x)
@@ -179,6 +182,7 @@ module Term = struct
     | App (c, v, ty) -> App (subst_computation_term map c, subst_value_term map v, ty)
     | PatternMatch (v, x, a, y, b, m) -> PatternMatch (subst_value_term map v, x, a, y, b, subst_computation_term map m)
     | Case (v, x, a, m, y, b, n) -> Case (subst_value_term map v, x, a, subst_computation_term map m, y, b, subst_computation_term map n)
+    | Fix (x, c, m) -> Fix (x, c, subst_computation_term map m)
 
   let rec value_simplify = function
     | TmVar x -> TmVar x
@@ -201,6 +205,7 @@ module Term = struct
     | App (c, v, ty) -> App (computation_simplify c, value_simplify v, ty) (* beta reduction? *)
     | PatternMatch (v, x, a, y, b, m) -> PatternMatch (value_simplify v, x, a, y, b, computation_simplify m) (* beta reduction? *)
     | Case (v, x, a, m, y, b, n) -> Case (value_simplify v, x, a, computation_simplify m, y, b, computation_simplify n) (* beta reduction? *)
+    | Fix (x, c, m) -> Fix (x, c, computation_simplify m)
 end
 
 type context = (string,Type.value,String.comparator_witness) Map.t
