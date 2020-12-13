@@ -13,6 +13,9 @@ let mk_fresh_name base exclude =
       search (i + 1)
     else
       name in
-  search 0
+  if Set.mem exclude base then
+    search 0
+  else
+    base
 
 

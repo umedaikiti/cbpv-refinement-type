@@ -147,7 +147,24 @@ module Term = struct
     | Fix (x, c, m) -> Printf.sprintf "fix (%s : U %s). %s" x (Type.computation_to_string c) (computation_to_string m)
 
   (*let rec free_type_var_in_value and free_type_var_in_computation*)
-  (*let rec free_term_var_in_value and free_term_var_in_computation*)
+  let rec value_free_term_var = function
+    | TmVar x -> Set.singleton (module String) x
+    | Unit
+    | Const _ -> Set.empty (module String)
+    | Pair (v, w) -> Set.union (value_free_term_var v) (value_free_term_var w)
+    | Inl (v, _) -> value_free_term_var v
+    | Inr (v, _) -> value_free_term_var v
+    | Thunk c -> computation_free_term_var c
+  and computation_free_term_var = function
+    | Return v -> value_free_term_var v
+    | SeqComp (m, x, _, n) -> Set.union (computation_free_term_var m) (Set.remove (computation_free_term_var n) x)
+    | Force (v, _) -> value_free_term_var v
+    | Lambda (x, _, m) -> Set.remove (computation_free_term_var m) x
+    | App (m, v, _) -> Set.union (computation_free_term_var m) (value_free_term_var v)
+    | PatternMatch (v, x, _, y, _, m) -> Set.union (value_free_term_var v) (Set.remove (Set.remove (computation_free_term_var m) x) y)
+    | Case (v, x, _, m, y, _, n) -> Set.union (value_free_term_var v) (Set.union (Set.remove (computation_free_term_var m) x) (Set.remove (computation_free_term_var n) y))
+    | Fix (x, _, m) -> Set.remove (computation_free_term_var m) x
+
   let rec value_subst_type m = function
     | TmVar x -> TmVar x
     | Unit -> Unit
@@ -166,23 +183,47 @@ module Term = struct
     | Case (v, x, a, m, y, b, n) -> Case (value_subst_type map v, x, Type.Substitution.value_subst map a, computation_subst_type map m, y, Type.Substitution.value_subst map b, computation_subst_type map n)
     | Fix (x, c, m) -> Fix (x, Type.Substitution.computation_subst map c, computation_subst_type map m)
 
-  let rec subst_value_term map = function
+  let map_fv map =
+    Map.to_alist map
+    |> List.map ~f:(fun (key, data) -> Set.add (value_free_term_var data) key)
+    |> Set.union_list (module String)
+
+  let rec value_subst_term map = function
     | TmVar x -> (match Map.find map x with Some t -> t | None -> TmVar x)
     | Unit -> Unit
     | Const c -> Const c
-    | Pair (v, w) -> Pair (subst_value_term map v, subst_value_term map w)
-    | Inl (v, b) -> Inl (subst_value_term map v, b)
-    | Inr (v, a) -> Inr (subst_value_term map v, a)
-    | Thunk c -> Thunk (subst_computation_term map c)
-  and subst_computation_term map = function
-    | Return v -> Return (subst_value_term map v)
-    | SeqComp (m, x, a, n) -> SeqComp (subst_computation_term map m, x, a, subst_computation_term map n) (* todo check freshness of x *)
-    | Force (v, c) -> Force (subst_value_term map v, c)
-    | Lambda (x, a, m) -> Lambda (x, a, subst_computation_term map m) (* todo freshness *)
-    | App (c, v, ty) -> App (subst_computation_term map c, subst_value_term map v, ty)
-    | PatternMatch (v, x, a, y, b, m) -> PatternMatch (subst_value_term map v, x, a, y, b, subst_computation_term map m)
-    | Case (v, x, a, m, y, b, n) -> Case (subst_value_term map v, x, a, subst_computation_term map m, y, b, subst_computation_term map n)
-    | Fix (x, c, m) -> Fix (x, c, subst_computation_term map m)
+    | Pair (v, w) -> Pair (value_subst_term map v, value_subst_term map w)
+    | Inl (v, b) -> Inl (value_subst_term map v, b)
+    | Inr (v, a) -> Inr (value_subst_term map v, a)
+    | Thunk c -> Thunk (computation_subst_term map c)
+  and computation_subst_term map = function
+    | Return v -> Return (value_subst_term map v)
+    | SeqComp (m, x, a, n) ->
+        let x' = Utils.mk_fresh_name x (map_fv map) in
+        let map' = Map.update map x ~f:(fun _ -> TmVar x') in
+        SeqComp (computation_subst_term map m, x', a, computation_subst_term map' n)
+    | Force (v, c) -> Force (value_subst_term map v, c)
+    | Lambda (x, a, m) ->
+        let x' = Utils.mk_fresh_name x (map_fv map) in
+        let map' = Map.update map x ~f:(fun _ -> TmVar x') in
+        Lambda (x', a, computation_subst_term map' m)
+    | App (c, v, ty) -> App (computation_subst_term map c, value_subst_term map v, ty)
+    | PatternMatch (v, x, a, y, b, m) ->
+        assert String.(x <> y);
+        let y' = Utils.mk_fresh_name y (map_fv map) in
+        let x' = Utils.mk_fresh_name x (Set.add (map_fv map) y') in
+        let map' = Map.update (Map.update map x ~f:(fun _ -> TmVar x')) y ~f:(fun _ -> TmVar y') in
+        PatternMatch (value_subst_term map v, x', a, y', b, computation_subst_term map' m)
+    | Case (v, x, a, m, y, b, n) ->
+        let x' = Utils.mk_fresh_name x (map_fv map) in
+        let map_m = Map.update map x ~f:(fun _ -> TmVar x') in
+        let y' = Utils.mk_fresh_name y (map_fv map) in
+        let map_n = Map.update map x ~f:(fun _ -> TmVar y') in
+        Case (value_subst_term map v, x', a, computation_subst_term map_m m, y', b, computation_subst_term map_n n)
+    | Fix (x, c, m) ->
+        let x' = Utils.mk_fresh_name x (map_fv map) in
+        let map' = Map.update map x ~f:(fun _ -> TmVar x') in
+        Fix (x', c, computation_subst_term map' m)
 
   let rec value_simplify = function
     | TmVar x -> TmVar x
@@ -196,7 +237,7 @@ module Term = struct
     | Return v -> Return (value_simplify v)
     | SeqComp (m, x, a, n) ->
         (match computation_simplify m, computation_simplify n with
-        | Return v, n' -> computation_simplify (subst_computation_term (Map.singleton (module String) x v) n')
+        | Return v, n' -> computation_simplify (computation_subst_term (Map.singleton (module String) x v) n')
         | m', Return (TmVar x') when String.(x = x') -> m'
         | m', n' -> SeqComp (m', x, a, n'))
     | Force (Thunk m, c) -> computation_simplify m
