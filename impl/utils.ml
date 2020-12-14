@@ -1,5 +1,10 @@
 open Core
 
+let inc_counter c =
+  let n = !c in
+  c := n + 1;
+  n
+
 let add_paren_if_needed outer_priority (inner_priority, str) =
   if inner_priority < outer_priority then
     "(" ^ str ^ ")"

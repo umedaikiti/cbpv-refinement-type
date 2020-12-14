@@ -225,6 +225,52 @@ module Term = struct
         let map' = Map.update map x ~f:(fun _ -> TmVar x') in
         Fix (x', c, computation_subst_term map' m)
 
+  let rec value_elim_shadow ?(used = Set.empty (module String)) ?(map = Map.empty (module String)) = function
+    | TmVar x -> TmVar (match Map.find map x with Some x' -> x' | None -> x)
+    | Unit -> Unit
+    | Const c -> Const c
+    | Pair (v, w) -> Pair (value_elim_shadow ~used ~map v, value_elim_shadow ~used ~map w)
+    | Inl (v, b) -> Inl (value_elim_shadow ~used ~map v, b)
+    | Inr (v, a) -> Inr (value_elim_shadow ~used ~map v, a)
+    | Thunk c -> Thunk (computation_elim_shadow ~used ~map c)
+  and computation_elim_shadow ?(used = Set.empty (module String)) ?(map = Map.empty (module String)) = function
+    | Return v -> Return (value_elim_shadow ~used ~map v)
+    | SeqComp (m, x, a, n) ->
+        let x' = Utils.mk_fresh_name x used in
+        let used' = Set.add used x' in
+        let map' = Map.update map x ~f:(fun _ -> x') in
+        SeqComp (computation_elim_shadow ~used ~map m, x', a, computation_elim_shadow ~used:used' ~map:map' n)
+    | Force (v, c) -> Force (value_elim_shadow ~used ~map v, c)
+    | Lambda (x, a, m) ->
+        let x' = Utils.mk_fresh_name x used in
+        let used' = Set.add used x' in
+        let map' = Map.update map x ~f:(fun _ -> x') in
+        Lambda (x', a, computation_elim_shadow ~used:used' ~map:map' m)
+    | App (m, v, ty) -> App (computation_elim_shadow ~used ~map m, value_elim_shadow ~used ~map v, ty)
+    | PatternMatch (v, x, a, y, b, m) ->
+        let x' = Utils.mk_fresh_name x used in
+        let used' = Set.add used x' in
+        let map' = Map.update map x ~f:(fun _ -> x') in
+        let y' = Utils.mk_fresh_name y used' in
+        let used'' = Set.add used' y' in
+        let map'' = Map.update map' y ~f:(fun _ -> y') in
+        PatternMatch (value_elim_shadow ~used ~map v, x', a, y', b, computation_elim_shadow ~used:used'' ~map:map'' m)
+    | Case (v, x, a, m, y, b, n) ->
+        let x' = Utils.mk_fresh_name x used in
+        let used' = Set.add used x' in
+        let map' = Map.update map x ~f:(fun _ -> x') in
+        let m' = computation_elim_shadow ~used:used' ~map:map' m in
+        let y' = Utils.mk_fresh_name y used in
+        let used' = Set.add used y' in
+        let map' = Map.update map y ~f:(fun _ -> y') in
+        let n' = computation_elim_shadow ~used:used' ~map:map' n in
+        Case (value_elim_shadow ~used ~map v, x', a, m', y', b, n')
+    | Fix (x, c, m) ->
+        let x' = Utils.mk_fresh_name x used in
+        let used' = Set.add used x' in
+        let map' = Map.update map x ~f:(fun _ -> x') in
+        Fix (x', c, computation_elim_shadow ~used:used' ~map:map' m)
+
   let rec value_simplify = function
     | TmVar x -> TmVar x
     | Unit -> Unit
@@ -249,5 +295,14 @@ module Term = struct
     | Fix (x, c, m) -> Fix (x, c, computation_simplify m)
 end
 
-type context = (string,Type.value,String.comparator_witness) Map.t
+let type_var_counter = ref 0
+let mk_fresh_value_type_var () =
+  Type.ValTyVar ("#tyv" ^ string_of_int (inc_counter type_var_counter))
+let mk_fresh_computation_type_var () =
+  Type.CompTyVar ("#tyv" ^ string_of_int (inc_counter type_var_counter))
+
+let term_var_counter = ref 0
+let mk_fresh_term_var () =
+  "#tmv" ^ string_of_int (inc_counter term_var_counter)
+
 

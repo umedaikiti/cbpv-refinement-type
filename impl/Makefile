@@ -1,4 +1,4 @@
-SOURCES = utils.ml syntax.ml lambda.ml translate.ml unification.ml hindleyMilner.ml logic.ml refinement.ml main.ml
+SOURCES = utils.ml context.ml syntax.ml lambda.ml translate.ml unification.ml hindleyMilner.ml logic.ml constraints.ml refinement.ml infer.ml main.ml
 RESULT  = main
 PACKS   = core
 OCAMLFLAGS = -thread -custom

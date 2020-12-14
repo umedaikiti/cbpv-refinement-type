@@ -2,21 +2,6 @@ open Core
 open Lambda
 open Syntax
 
-let inc_counter c =
-  let n = !c in
-  c := n + 1;
-  n
-
-let type_var_counter = ref 0
-let mk_fresh_value_type_var () =
-  Type.ValTyVar ("#tyv" ^ string_of_int (inc_counter type_var_counter))
-let mk_fresh_computation_type_var () =
-  Type.CompTyVar ("#tyv" ^ string_of_int (inc_counter type_var_counter))
-
-let term_var_counter = ref 0
-let mk_fresh_term_var () =
-  "#tmv" ^ string_of_int (inc_counter term_var_counter)
-
 let rec cbv_type = function
   | Lambda.TyVar x -> Type.ValTyVar x
   | Lambda.IntType -> Type.IntType
@@ -43,7 +28,7 @@ let op_cbv_term = function
   | Int n -> Term.Return (Term.Const (Term.Int n))
 (*  | Add -> Term.Return (Term.Thunk (Term.Lambda ("#x", Type.IntType, Term.Return (Term.Thunk (Term.Lambda ("#y", Type.IntType, Term.App (Term.App(Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType)))), Term.TmVar "#x", Type.(FunctionType (IntType, FType IntType))), Term.TmVar "#y", Type.FType Type.IntType)))))))*)
 (*  | Add -> return_thunk_lambda_app (Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType))))) [("#x", Type.IntType); ("#y", Type.IntType)] Type.IntType*)
-  | Add -> op_cbv_term_default Term.Add [("#x", Type.IntType); ("#y", Type.IntType)] Type.IntType
+  | Add -> op_cbv_term_default Term.Add [("x", Type.IntType); ("y", Type.IntType)] Type.IntType
 
 let rec cbv_term = function
   | Var x -> Term.Return (Term.TmVar x)
