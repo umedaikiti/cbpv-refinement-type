@@ -36,9 +36,8 @@ let infer_cbv ctx t =
   rctx, t'', ty, c
 
 let _ =
-  let open Lambda in
-  let ctx = [("x", IntType); ("f", FunctionType (TyVar "a", TyVar "b"))] in
-  let t = App (App (Const Add, Const (Int 1)), App (Var "f", Var "x")) in
+  let ctx = Lambda.Type.([("x", Int); ("f", Function (Var "a", Var "b"))]) in
+  let t = Lambda.Term.(App (App (Const Add, Const (Int 1)), App (Var "f", Var "x"))) in
   let rctx, t, ty, c = infer_cbv ctx t in
   print_endline "Result:";
   print_endline (List.map ~f:(fun (x, a) -> x ^ " : " ^ Refinement.value_to_string a) rctx |> String.concat ~sep:", ");

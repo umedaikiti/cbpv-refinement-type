@@ -1,36 +1,41 @@
 open Core
 open Utils
 
-type type_t =
-  | TyVar of string
-  | IntType
-  | UnitType
-  | FunctionType of type_t * type_t
-  | SumType of type_t * type_t
-  | PairType of type_t * type_t
+module Type = struct
+  type t =
+    | Var of string
+    | Int
+    | Unit
+    | Function of t * t
+    | Sum of t * t
+    | Pair of t * t
 
-type op =
-  | Int of int
-  | Add
+  let rec to_string' = function
+    | Var x -> 100, x
+    | Int -> 100, "int"
+    | Unit -> 100, "()"
+    | Function (a, b) -> 40, (to_string' a |> add_paren_if_needed 41) ^ " -> " ^ (to_string' b |> add_paren_if_needed 40)
+    | Sum (a, b) -> 10, (to_string' a |> add_paren_if_needed 10) ^ " + " ^ (to_string' b |> add_paren_if_needed 10)
+    | Pair (a, b) -> 20, (to_string' a |> add_paren_if_needed 20) ^ " * " ^ (to_string' b |> add_paren_if_needed 20)
 
-type term =
-  | Var of string
-  | Const of op
-  | Lambda of string * term
-  | App of term * term
-  | Unit
-  | Inl of term
-  | Inr of term
-  | Case of term * string * term * string * term
-  | Pair of term * term
-  | PatternMatch of term * string * string * term
+  let to_string t = let _, s = to_string' t in s
+end
 
-let rec type_to_string' = function
-  | TyVar x -> 100, x
-  | IntType -> 100, "int"
-  | UnitType -> 100, "()"
-  | FunctionType (a, b) -> 40, (type_to_string' a |> add_paren_if_needed 41) ^ " -> " ^ (type_to_string' b |> add_paren_if_needed 40)
-  | SumType (a, b) -> 10, (type_to_string' a |> add_paren_if_needed 10) ^ " + " ^ (type_to_string' b |> add_paren_if_needed 10)
-  | PairType (a, b) -> 20, (type_to_string' a |> add_paren_if_needed 20) ^ " * " ^ (type_to_string' b |> add_paren_if_needed 20)
+module Term = struct
+  type op =
+    | Int of int
+    | Add
 
-let type_to_string t = let _, s = type_to_string' t in s
+  type t =
+    | Var of string
+    | Const of op
+    | Lambda of string * t
+    | App of t * t
+    | Unit
+    | Inl of t
+    | Inr of t
+    | Case of t * string * t * string * t
+    | Pair of t * t
+    | PatternMatch of t * string * string * t
+end
+

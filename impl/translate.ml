@@ -3,12 +3,12 @@ open Lambda
 open Syntax
 
 let rec cbv_type = function
-  | Lambda.TyVar x -> Type.ValTyVar x
-  | Lambda.IntType -> Type.IntType
-  | Lambda.UnitType -> UnitType
-  | Lambda.FunctionType (a, b) -> UType (FunctionType (cbv_type a, FType (cbv_type b)))
-  | Lambda.SumType (a, b) -> SumType (cbv_type a, cbv_type b)
-  | Lambda.PairType (a, b) -> PairType (cbv_type a, cbv_type b)
+  | Lambda.Type.Var x -> Type.ValTyVar x
+  | Lambda.Type.Int -> Type.IntType
+  | Lambda.Type.Unit -> UnitType
+  | Lambda.Type.Function (a, b) -> UType (FunctionType (cbv_type a, FType (cbv_type b)))
+  | Lambda.Type.Sum (a, b) -> SumType (cbv_type a, cbv_type b)
+  | Lambda.Type.Pair (a, b) -> PairType (cbv_type a, cbv_type b)
 
 
 (* func : a0 -> .. -> an -> F b ==> return_thunk_lambda_app func [(x0, a0); ..; (xn : an)] b : FU(a0 -> ... FU(an -> Fb)) *)
@@ -25,13 +25,13 @@ let op_cbv_term_default op args ret_ty =
   return_thunk_lambda_app (Term.Force (Term.Const op, List.fold_right args ~f:(fun (_, b) ty -> Type.FunctionType (b, ty)) ~init:(Type.FType ret_ty))) args ret_ty
 
 let op_cbv_term = function
-  | Int n -> Term.Return (Term.Const (Term.Int n))
+  | Lambda.Term.Int n -> Term.Return (Term.Const (Term.Int n))
 (*  | Add -> Term.Return (Term.Thunk (Term.Lambda ("#x", Type.IntType, Term.Return (Term.Thunk (Term.Lambda ("#y", Type.IntType, Term.App (Term.App(Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType)))), Term.TmVar "#x", Type.(FunctionType (IntType, FType IntType))), Term.TmVar "#y", Type.FType Type.IntType)))))))*)
 (*  | Add -> return_thunk_lambda_app (Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType))))) [("#x", Type.IntType); ("#y", Type.IntType)] Type.IntType*)
   | Add -> op_cbv_term_default Term.Add [("x", Type.IntType); ("y", Type.IntType)] Type.IntType
 
 let rec cbv_term = function
-  | Var x -> Term.Return (Term.TmVar x)
+  | Lambda.Term.Var x -> Term.Return (Term.TmVar x)
   | Lambda (x, m) -> Term.Return (Term.Thunk (Term.Lambda (x, mk_fresh_value_type_var (), cbv_term m)))
   | App (m, n) ->
       let f = mk_fresh_term_var () in
@@ -58,11 +58,11 @@ let rec cbv_term = function
 
 
 let op_cbn_term = function
-  | Int n -> Term.Return (Term.Const (Term.Int n))
+  | Lambda.Term.Int n -> Term.Return (Term.Const (Term.Int n))
   | Add -> failwith "unimplemented"
 
 let rec cbn_term = function
-  | Var x -> Term.Force (Term.TmVar x, mk_fresh_computation_type_var ())
+  | Lambda.Term.Var x -> Term.Force (Term.TmVar x, mk_fresh_computation_type_var ())
   | Lambda (x, m) -> Term.Lambda (x, mk_fresh_value_type_var (), cbn_term m)
   | App (m, n) -> Term.App (cbn_term m, Term.Thunk (cbn_term n), mk_fresh_computation_type_var ())
   | Const op -> op_cbn_term op
