@@ -63,26 +63,33 @@ module Formula = struct
   type t =
     | PVar of string * Term.t list
     | True
+    | False
     | Equal of Term.t * Term.t
     | And of t list
+    | Or of t list
     | Implies of t * t
 
   let rec subst_term map = function
     | PVar (p, args) -> PVar (p, List.map ~f:(Term.subst map) args)
     | True -> True
+    | False -> False
     | Equal (v1, v2) -> Equal (Term.subst map v1, Term.subst map v2)
     | And fmls -> And (List.map ~f:(subst_term map) fmls)
+    | Or fmls -> Or (List.map ~f:(subst_term map) fmls)
     | Implies (p, q) -> Implies (subst_term map p, subst_term map q)
 
   (* t[y/x] *)
   let rename_term_var x y t = subst_term (Map.singleton (module String) x (Term.TmVar y)) t
 
-  let rec to_string = function
-    | PVar (p, args) -> Printf.sprintf "%s(%s)" p (List.map ~f:Term.to_string args |> String.concat ~sep:", ")
-    | True -> "true"
-    | Equal (x, y) -> Term.to_string x ^ " = " ^ Term.to_string y
-    | And fmls -> List.map ~f:to_string fmls |> String.concat ~sep:" /\\ "
-    | Implies (p, q) -> to_string p ^ " => " ^ to_string q
+  let rec to_string' = function
+    | PVar (p, args) -> 100, Printf.sprintf "%s(%s)" p (List.map ~f:Term.to_string args |> String.concat ~sep:", ")
+    | True -> 100, "true"
+    | False -> 100, "false"
+    | Equal (x, y) -> 100, Term.to_string x ^ " = " ^ Term.to_string y
+    | And fmls -> 30, List.map ~f:(fun f -> to_string' f |> Utils.add_paren_if_needed 30) fmls |> String.concat ~sep:" /\\ "
+    | Or fmls -> 20, List.map ~f:(fun f -> to_string' f |> Utils.add_paren_if_needed 20) fmls |> String.concat ~sep:" \\/ "
+    | Implies (p, q) -> 10, (to_string' p |> add_paren_if_needed 10) ^ " => " ^ (to_string' q |> add_paren_if_needed 10)
+  let to_string f = let _, s = to_string' f in s
 end
 
 

@@ -100,6 +100,11 @@ module Term = struct
   type constants =
     | Int of int
     | Add
+
+  type alg_op =
+    | Fail
+    | Nondet
+
   type value =
     | TmVar of string
     | Unit
@@ -118,6 +123,7 @@ module Term = struct
     | Case of value * string * Type.value * computation * string * Type.value * computation
     | Fix of string * Type.computation * computation
     | Explode of value * Type.computation
+    | GenOp of alg_op * value
 
   let constant_to_string = function
     | Int n -> string_of_int n
@@ -130,6 +136,13 @@ module Term = struct
     | Int n -> Type.IntType
     | Add -> type_of_operation [Type.IntType; Type.IntType] Type.IntType
 
+  let type_of_alg_op = function
+    | Fail -> Type.(UnitType, EmptyType)
+    | Nondet -> Type.(UnitType, SumType (UnitType, UnitType))
+
+  let alg_op_to_string = function
+    | Fail -> "fail"
+    | Nondet -> "ndet"
 
   let rec value_to_string = function
     | TmVar id -> id
@@ -149,6 +162,7 @@ module Term = struct
     | Case (v, x, a, m, y, b, n) -> Printf.sprintf "case %s of [inl (%s : %s) -> %s; inr (%s : %s) -> %s]" (value_to_string v) x (Type.value_to_string a) (computation_to_string m) y (Type.value_to_string b) (computation_to_string n)
     | Fix (x, c, m) -> Printf.sprintf "fix (%s : U %s). %s" x (Type.computation_to_string c) (computation_to_string m)
     | Explode (v, c) -> Printf.sprintf "case %s of ([] : %s)" (value_to_string v) (Type.computation_to_string c)
+    | GenOp (op, v) -> Printf.sprintf "%s (%s)" (alg_op_to_string op) (value_to_string v)
 
   (*let rec free_type_var_in_value and free_type_var_in_computation*)
   let rec value_free_term_var = function
@@ -169,6 +183,7 @@ module Term = struct
     | Case (v, x, _, m, y, _, n) -> Set.union (value_free_term_var v) (Set.union (Set.remove (computation_free_term_var m) x) (Set.remove (computation_free_term_var n) y))
     | Fix (x, _, m) -> Set.remove (computation_free_term_var m) x
     | Explode (v, _) -> value_free_term_var v
+    | GenOp (_, v) -> value_free_term_var v
 
   let rec value_subst_type m = function
     | TmVar x -> TmVar x
@@ -188,6 +203,7 @@ module Term = struct
     | Case (v, x, a, m, y, b, n) -> Case (value_subst_type map v, x, Type.Substitution.value_subst map a, computation_subst_type map m, y, Type.Substitution.value_subst map b, computation_subst_type map n)
     | Fix (x, c, m) -> Fix (x, Type.Substitution.computation_subst map c, computation_subst_type map m)
     | Explode (v, c) -> Explode (value_subst_type map v, Type.Substitution.computation_subst map c)
+    | GenOp (op, v) -> GenOp (op, value_subst_type map v)
 
   let map_fv map =
     Map.to_alist map
@@ -231,6 +247,7 @@ module Term = struct
         let map' = Map.update map x ~f:(fun _ -> TmVar x') in
         Fix (x', c, computation_subst_term map' m)
     | Explode (v, c) -> Explode (value_subst_term map v, c)
+    | GenOp (op, v) -> GenOp (op, value_subst_term map v)
 
   let rec value_elim_shadow ?(used = Set.empty (module String)) ?(map = Map.empty (module String)) = function
     | TmVar x -> TmVar (match Map.find map x with Some x' -> x' | None -> x)
@@ -278,6 +295,7 @@ module Term = struct
         let map' = Map.update map x ~f:(fun _ -> x') in
         Fix (x', c, computation_elim_shadow ~used:used' ~map:map' m)
     | Explode (v, c) -> Explode (value_elim_shadow ~used ~map v, c)
+    | GenOp (op, v) -> GenOp (op, value_elim_shadow ~used ~map v)
 
   let rec value_simplify = function
     | TmVar x -> TmVar x
@@ -302,6 +320,7 @@ module Term = struct
     | Case (v, x, a, m, y, b, n) -> Case (value_simplify v, x, a, computation_simplify m, y, b, computation_simplify n) (* beta reduction? *)
     | Fix (x, c, m) -> Fix (x, c, computation_simplify m)
     | Explode (v, c) -> Explode (value_simplify v, c)
+    | GenOp (op, v) -> GenOp (op, value_simplify v)
 end
 
 let type_var_counter = ref 0

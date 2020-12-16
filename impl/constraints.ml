@@ -37,6 +37,8 @@ let rec simplify_equalities =
   | Formula.Equal (v, u) -> Formula.And (simplify_equalities_equal v u)
   | PVar (p, args) -> PVar (p, args)
   | True -> True
+  | False -> False
   | And l -> And (List.map ~f:simplify_equalities l)
+  | Or l -> Or (List.map ~f:simplify_equalities l)
   | Implies (p, q) -> Implies (simplify_equalities p, simplify_equalities q)
 

@@ -85,6 +85,19 @@ let refinement_type_of_const = function
       let z = mk_fresh_term_var () in
       refinement_type_of_operation [(x, RefinedIntType (x, Logic.Formula.True)); (y, RefinedIntType (y, Logic.Formula.True))] (RefinedIntType (z, Logic.(Formula.Equal (TmVar z, Operation (Add, [TmVar x; TmVar y])))))
 
+let refinement_type_of_alg_op ctx = function
+  | Term.Fail -> (* total correctness *)
+      let vars, _ = RefinementContext.erase_purify ctx |> List.unzip in
+      let dummy = Utils.mk_fresh_name "v" (Set.of_list (module String) vars) in
+      RefinedUnitType (dummy, Logic.Formula.False), EmptyType
+  | Term.Nondet -> (* may nondeterminism *)
+      let vars, _ = RefinementContext.erase_purify ctx |> List.unzip in
+      let dummy = Utils.mk_fresh_name "v" (Set.of_list (module String) vars) in
+      let args = List.map vars ~f:(fun x -> Logic.Term.TmVar x) in
+      let p = Logic.Formula.PVar (Logic.mk_fresh_pvar (), args) in
+      let q = Logic.Formula.PVar (Logic.mk_fresh_pvar (), args) in
+      RefinedUnitType (dummy, Logic.Formula.Or [p; q]), SumType (RefinedUnitType (dummy, p), RefinedUnitType (dummy, q))
+
 (* constraints = context & predicate in the context *)
 let rec value_verification_condition ctx = function
   | Term.Unit -> ([], RefinedUnitType (mk_fresh_term_var (), True))
@@ -174,5 +187,9 @@ and computation_verification_condition ctx = function
       let constraints, ty = value_verification_condition ctx v in
       (* assert (ty = EmptyType) *)
       constraints, c'
-
+  | GenOp (op, v) ->
+      let constraints, ty = value_verification_condition ctx v in
+      let ty_in, ty_out = refinement_type_of_alg_op ctx op in
+      let constraints_sub = subtype_value ctx ty ty_in in
+      constraints @ constraints_sub, FType ty_out
 
