@@ -4,6 +4,7 @@ open Utils
 module Type = struct
   type value =
     | ValTyVar of string
+    | EmptyType
     | UnitType
     | IntType
     | PairType of value * value
@@ -22,8 +23,7 @@ module Type = struct
   (* free variables *)
   let rec value_fv = function
     | ValTyVar id -> Set.singleton (module String) id, Set.empty (module String)
-    | UnitType -> Set.empty (module String), Set.empty (module String)
-    | IntType -> Set.empty (module String), Set.empty (module String)
+    | EmptyType | UnitType | IntType -> Set.empty (module String), Set.empty (module String)
     | PairType (a, b) ->
         let av, ac = value_fv a in
         let bv, bc = value_fv b in
@@ -43,6 +43,7 @@ module Type = struct
 
   let rec value_to_string' = function
     | ValTyVar id -> 100, id
+    | EmptyType -> 100, "empty"
     | UnitType -> 100, "unit"
     | IntType -> 100, "int"
     | PairType (a, b) -> 20, (value_to_string' a |> add_paren_if_needed 20) ^ " * " ^ (value_to_string' b |> add_paren_if_needed 20)
@@ -70,6 +71,7 @@ module Type = struct
       | None -> CompTyVar id
     let rec value_subst (mv, mc) = function
       | ValTyVar id -> lookup_value mv id
+      | EmptyType -> EmptyType
       | UnitType -> UnitType
       | IntType -> IntType
       | PairType (a, b) -> PairType (value_subst (mv, mc) a, value_subst (mv, mc) b)
@@ -115,6 +117,7 @@ module Term = struct
     | PatternMatch of value * string * Type.value * string * Type.value * computation
     | Case of value * string * Type.value * computation * string * Type.value * computation
     | Fix of string * Type.computation * computation
+    | Explode of value * Type.computation
 
   let constant_to_string = function
     | Int n -> string_of_int n
@@ -145,6 +148,7 @@ module Term = struct
     | PatternMatch (v, x, a, y, b, m) -> "pm " ^ value_to_string v ^ " to (" ^ x ^ " : " ^ Type.value_to_string a ^ ", " ^ y ^ " : " ^ Type.value_to_string b ^ " in " ^ computation_to_string m ^ ")"
     | Case (v, x, a, m, y, b, n) -> Printf.sprintf "case %s of [inl (%s : %s) -> %s; inr (%s : %s) -> %s]" (value_to_string v) x (Type.value_to_string a) (computation_to_string m) y (Type.value_to_string b) (computation_to_string n)
     | Fix (x, c, m) -> Printf.sprintf "fix (%s : U %s). %s" x (Type.computation_to_string c) (computation_to_string m)
+    | Explode (v, c) -> Printf.sprintf "case %s of ([] : %s)" (value_to_string v) (Type.computation_to_string c)
 
   (*let rec free_type_var_in_value and free_type_var_in_computation*)
   let rec value_free_term_var = function
@@ -164,6 +168,7 @@ module Term = struct
     | PatternMatch (v, x, _, y, _, m) -> Set.union (value_free_term_var v) (Set.remove (Set.remove (computation_free_term_var m) x) y)
     | Case (v, x, _, m, y, _, n) -> Set.union (value_free_term_var v) (Set.union (Set.remove (computation_free_term_var m) x) (Set.remove (computation_free_term_var n) y))
     | Fix (x, _, m) -> Set.remove (computation_free_term_var m) x
+    | Explode (v, _) -> value_free_term_var v
 
   let rec value_subst_type m = function
     | TmVar x -> TmVar x
@@ -182,6 +187,7 @@ module Term = struct
     | PatternMatch (v, x, a, y, b, m) -> PatternMatch (value_subst_type map v, x, Type.Substitution.value_subst map a, y, Type.Substitution.value_subst map b, computation_subst_type map m)
     | Case (v, x, a, m, y, b, n) -> Case (value_subst_type map v, x, Type.Substitution.value_subst map a, computation_subst_type map m, y, Type.Substitution.value_subst map b, computation_subst_type map n)
     | Fix (x, c, m) -> Fix (x, Type.Substitution.computation_subst map c, computation_subst_type map m)
+    | Explode (v, c) -> Explode (value_subst_type map v, Type.Substitution.computation_subst map c)
 
   let map_fv map =
     Map.to_alist map
@@ -224,6 +230,7 @@ module Term = struct
         let x' = Utils.mk_fresh_name x (map_fv map) in
         let map' = Map.update map x ~f:(fun _ -> TmVar x') in
         Fix (x', c, computation_subst_term map' m)
+    | Explode (v, c) -> Explode (value_subst_term map v, c)
 
   let rec value_elim_shadow ?(used = Set.empty (module String)) ?(map = Map.empty (module String)) = function
     | TmVar x -> TmVar (match Map.find map x with Some x' -> x' | None -> x)
@@ -270,6 +277,7 @@ module Term = struct
         let used' = Set.add used x' in
         let map' = Map.update map x ~f:(fun _ -> x') in
         Fix (x', c, computation_elim_shadow ~used:used' ~map:map' m)
+    | Explode (v, c) -> Explode (value_elim_shadow ~used ~map v, c)
 
   let rec value_simplify = function
     | TmVar x -> TmVar x
@@ -293,6 +301,7 @@ module Term = struct
     | PatternMatch (v, x, a, y, b, m) -> PatternMatch (value_simplify v, x, a, y, b, computation_simplify m) (* beta reduction? *)
     | Case (v, x, a, m, y, b, n) -> Case (value_simplify v, x, a, computation_simplify m, y, b, computation_simplify n) (* beta reduction? *)
     | Fix (x, c, m) -> Fix (x, c, computation_simplify m)
+    | Explode (v, c) -> Explode (value_simplify v, c)
 end
 
 let type_var_counter = ref 0

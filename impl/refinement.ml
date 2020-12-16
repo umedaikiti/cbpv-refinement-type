@@ -2,6 +2,7 @@ open Core
 open Logic
 
 type value =
+  | EmptyType
   | RefinedUnitType of string * Formula.t
   | RefinedIntType of string * Formula.t
   | PairType of string * value * value
@@ -12,6 +13,7 @@ and computation =
   | FType of value
 
 let rec value_erasure = function
+  | EmptyType -> Syntax.Type.EmptyType
   | RefinedUnitType _ -> Syntax.Type.UnitType
   | RefinedIntType _ -> Syntax.Type.IntType
   | PairType (_, a, b) -> Syntax.Type.PairType (value_erasure a, value_erasure b)
@@ -22,6 +24,7 @@ and computation_erasure = function
   | FType a -> Syntax.Type.FType (value_erasure a)
 
 let rec value_to_string = function
+  | EmptyType -> "empty"
   | RefinedUnitType (v, p) -> Printf.sprintf "{ %s : unit | %s }" v (Formula.to_string p)
   | RefinedIntType (v, p) -> Printf.sprintf "{ %s : int | %s }" v (Formula.to_string p)
   | PairType (x, a, b) -> Printf.sprintf "(%s : %s) * %s" x (value_to_string a) (value_to_string b)
@@ -32,6 +35,7 @@ and computation_to_string = function
   | FunctionType (x, a, c) -> Printf.sprintf "(%s : %s) -> %s" x (value_to_string a) (computation_to_string c)
 
 let rec value_subst map = function
+  | EmptyType -> EmptyType
   | RefinedUnitType (x, p) -> RefinedUnitType (x, Formula.subst_term map p)
   | RefinedIntType (x, p) -> RefinedIntType (x, Formula.subst_term map p)
   | PairType (x, a, b) -> PairType (x, value_subst map a, value_subst map b) (* todo: check that x is fresh *)

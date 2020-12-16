@@ -75,6 +75,8 @@ and computation_infer ctx = function
       let map, ty = computation_infer (UnderlyingContext.add ctx x (Type.UType c)) m in
       let constraints = Constraints.append ([], [(c, ty)]) (Type.Substitution.constraints_of map) in
       Option.value_exn (unify Type.Substitution.empty constraints), c
-
-
+  | Explode (v, c) ->
+      let map, ty = value_infer ctx v in
+      let constraints = Constraints.append (Type.Substitution.constraints_of map) ([(ty, Type.EmptyType)], []) in
+      Option.value_exn (unify Type.Substitution.empty constraints), c
 

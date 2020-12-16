@@ -44,6 +44,7 @@ and subtype_computation ctx a b =
 let rec refinement_template_value ?(default_name = "v") ctx =
   let open Logic in
   function
+    | Type.EmptyType -> EmptyType
     | Type.UnitType ->
         let vars, _ = RefinementContext.erase_purify ctx |> List.unzip in
         let dummy = Utils.mk_fresh_name default_name (Set.of_list (module String) vars) in
@@ -168,5 +169,10 @@ and computation_verification_condition ctx = function
       let constraints, ty = computation_verification_condition (RefinementContext.add ctx x (Refinement.UType c')) m in
       let constraints_sub = subtype_computation ctx ty c' in
       constraints @ constraints_sub, c'
+  | Explode (v, c) ->
+      let c' = refinement_template_computation ctx c in
+      let constraints, ty = value_verification_condition ctx v in
+      (* assert (ty = EmptyType) *)
+      constraints, c'
 
 
