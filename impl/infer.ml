@@ -11,8 +11,8 @@ module RefinementContext = struct
 
   let collect_predicates =
     List.filter_map ~f:(fun (x, a) -> match a with
-      | RefinedUnitType (_, p) -> Some p
-      | RefinedIntType (_, p) -> Some p
+      | RefinedUnitType (v, p) -> Some Logic.(Formula.rename_term_var v x p)
+      | RefinedIntType (v, p) -> Some Logic.(Formula.rename_term_var v x p)
       | _ -> None)
 end
 
@@ -41,31 +41,31 @@ and subtype_computation ctx a b =
   | FType a, FType b -> subtype_value ctx a b
   | _, _ -> failwith "mismatch of underlying types"
 
-let rec refinement_template_value ctx =
+let rec refinement_template_value ?(default_name = "v") ctx =
   let open Logic in
   function
     | Type.UnitType ->
-        let dummy = mk_fresh_term_var () in
         let vars, _ = RefinementContext.erase_purify ctx |> List.unzip in
+        let dummy = Utils.mk_fresh_name default_name (Set.of_list (module String) vars) in
         let args = List.map vars ~f:(fun x -> Term.TmVar x) in
         RefinedUnitType (dummy, Formula.PVar (mk_fresh_pvar (), args))
     | Type.IntType ->
-        let x = mk_fresh_term_var () in
         let vars, _ = RefinementContext.erase_purify ctx |> List.unzip in
+        let x = Utils.mk_fresh_name default_name (Set.of_list (module String) vars) in
         let args = List.map (x :: vars) ~f:(fun x -> Term.TmVar x) in
         RefinedIntType (x, Formula.PVar (mk_fresh_pvar (), args))
     | Type.SumType (a, b) -> Refinement.SumType (refinement_template_value ctx a, refinement_template_value ctx b)
     | Type.PairType (a, b) ->
-        let a' = refinement_template_value ctx a in
-        let x = mk_fresh_term_var () in
+        let x = Utils.mk_fresh_name "x" (Set.of_list (module String) (RefinementContext.vars ctx)) in
+        let a' = refinement_template_value ~default_name:x ctx a in
         let b' = refinement_template_value (RefinementContext.add ctx x a') b in
         PairType (x, a', b')
     | Type.UType c -> UType (refinement_template_computation ctx c)
     | Type.ValTyVar _ -> failwith "type variables are not allowed"
   and refinement_template_computation ctx = function
     | Type.FunctionType (a, c) ->
-        let x = mk_fresh_term_var () in
-        let a' = refinement_template_value ctx a in
+        let x = Utils.mk_fresh_name "x" (Set.of_list (module String) (RefinementContext.vars ctx)) in
+        let a' = refinement_template_value ~default_name:x ctx a in
         let c' = refinement_template_computation (RefinementContext.add ctx x a') c in
         FunctionType (x, a', c')
     | Type.FType a -> FType (refinement_template_value ctx a)
@@ -90,8 +90,12 @@ let rec value_verification_condition ctx = function
   | Term.Const c -> ([], refinement_type_of_const c)
   | Term.TmVar x ->
       (match RefinementContext.find ctx x with
-      | Some (RefinedUnitType (v, _)) -> ([], RefinedUnitType (v, True))
-      | Some (RefinedIntType (v, _)) -> ([], RefinedIntType (v, Logic.(Equal (Term.TmVar v, Term.TmVar x))))
+      | Some (RefinedUnitType (v, _)) ->
+          let v = Utils.mk_fresh_name x (Set.of_list (module String) (RefinementContext.vars ctx)) in
+          ([], RefinedUnitType (v, True))
+      | Some (RefinedIntType (v, _)) ->
+          let v = Utils.mk_fresh_name x (Set.of_list (module String) (RefinementContext.vars ctx)) in
+          ([], RefinedIntType (v, Logic.(Equal (Term.TmVar v, Term.TmVar x))))
       | Some a -> ([], a)
       | _ -> failwith "variable not found in context")
   | Term.Pair (v, w) ->
@@ -115,7 +119,7 @@ and computation_verification_condition ctx = function
       let c, ty = value_verification_condition ctx v in
       c, Refinement.FType ty
   | Term.Lambda (x, a, m) ->
-      let a' = refinement_template_value ctx a in
+      let a' = refinement_template_value ~default_name:x ctx a in
       let constraints, ty = computation_verification_condition (RefinementContext.add ctx x a') m in
        constraints, Refinement.FunctionType (x, a', ty)
   | Term.App (m, v, _) ->

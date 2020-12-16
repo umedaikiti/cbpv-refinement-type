@@ -12,8 +12,10 @@ let add_paren_if_needed outer_priority (inner_priority, str) =
     str
 
 let mk_fresh_name base exclude =
+  let re = Re2.create_exn "^(.*)'[0-9]+$" in
+  let base = Re2.rewrite_exn re ~template:"\\1" base in
   let rec search i =
-    let name = base ^ string_of_int i in
+    let name = base ^ "'" ^ string_of_int i in
     if Set.mem exclude name then
       search (i + 1)
     else

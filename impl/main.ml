@@ -17,7 +17,8 @@ let infer_cbv ctx t =
     |> String.concat ~sep:", " in
 (*  print_endline "Input:";
   print_endline (context_to_string ctx ^ " |- " ^ )*)
-  let t' = Term.computation_elim_shadow ~used:(List.map ~f:(fun (x, _) -> x) ctx |> Set.of_list (module String)) (Translate.cbv_term t) (*|> Term.computation_simplify*) in
+  let used = List.map ~f:(fun (x, _) -> x) ctx |> Set.of_list (module String) in
+  let t' = Term.computation_elim_shadow ~used (Translate.cbv_term used t) (*|> Term.computation_simplify*) in
   let ctx = List.map ~f:(fun (x, a) -> x, Translate.cbv_type a) ctx in
   print_endline "CBV translation:";
   print_endline (context_to_string Type.value_to_string ctx ^ " |- " ^ Term.computation_to_string t' ^ " : ?");
@@ -29,7 +30,7 @@ let infer_cbv ctx t =
   let rec ctx_template ctx = function
     | [] -> []
     | (x, a)::ctx' ->
-        let a' = refinement_template_value ctx a in
+        let a' = refinement_template_value ~default_name:x ctx a in
         (x, a') :: ctx_template ((x, a')::ctx) ctx' in
   let rctx = ctx_template [] ctx in
   let c, ty = computation_verification_condition rctx t'' in

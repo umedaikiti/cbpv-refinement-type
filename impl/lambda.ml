@@ -37,5 +37,6 @@ module Term = struct
     | Case of t * string * t * string * t
     | Pair of t * t
     | PatternMatch of t * string * string * t
+    | Fix of string * t
 end
 
