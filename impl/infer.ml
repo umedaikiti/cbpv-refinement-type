@@ -204,4 +204,5 @@ and computation_verification_condition ctx = function
       let ty_in, ty_out = refinement_type_of_alg_op ctx op in
       let constraints_sub = subtype_value ctx ty ty_in in
       constraints @ constraints_sub, FType ty_out
+  | CompTypeAssert (m, _) -> computation_verification_condition ctx m
 

@@ -125,6 +125,7 @@ module Term = struct
     | Fix of string * Type.computation * computation
     | Explode of value * Type.computation
     | GenOp of alg_op * value
+    | CompTypeAssert of computation * Type.computation
 
   let constant_to_string = function
     | Int n -> string_of_int n
@@ -166,6 +167,7 @@ module Term = struct
     | Fix (x, c, m) -> Printf.sprintf "fix (%s : U %s). %s" x (Type.computation_to_string c) (computation_to_string m)
     | Explode (v, c) -> Printf.sprintf "case %s of ([] : %s)" (value_to_string v) (Type.computation_to_string c)
     | GenOp (op, v) -> Printf.sprintf "%s (%s)" (alg_op_to_string op) (value_to_string v)
+    | CompTypeAssert (m, c) -> Printf.sprintf "(%s : %s)" (computation_to_string m) (Type.computation_to_string c)
 
   (*let rec free_type_var_in_value and free_type_var_in_computation*)
   let rec value_free_term_var = function
@@ -187,6 +189,7 @@ module Term = struct
     | Fix (x, _, m) -> Set.remove (computation_free_term_var m) x
     | Explode (v, _) -> value_free_term_var v
     | GenOp (_, v) -> value_free_term_var v
+    | CompTypeAssert (m, _) -> computation_free_term_var m
 
   let rec value_subst_type m = function
     | TmVar x -> TmVar x
@@ -207,6 +210,7 @@ module Term = struct
     | Fix (x, c, m) -> Fix (x, Type.Substitution.computation_subst map c, computation_subst_type map m)
     | Explode (v, c) -> Explode (value_subst_type map v, Type.Substitution.computation_subst map c)
     | GenOp (op, v) -> GenOp (op, value_subst_type map v)
+    | CompTypeAssert (m, c) -> CompTypeAssert (computation_subst_type map m, Type.Substitution.computation_subst map c)
 
   let map_fv map =
     Map.to_alist map
@@ -251,6 +255,7 @@ module Term = struct
         Fix (x', c, computation_subst_term map' m)
     | Explode (v, c) -> Explode (value_subst_term map v, c)
     | GenOp (op, v) -> GenOp (op, value_subst_term map v)
+    | CompTypeAssert (m, c) -> CompTypeAssert (computation_subst_term map m, c)
 
   let rec value_elim_shadow ?(used = Set.empty (module String)) ?(map = Map.empty (module String)) = function
     | TmVar x -> TmVar (match Map.find map x with Some x' -> x' | None -> x)
@@ -299,6 +304,7 @@ module Term = struct
         Fix (x', c, computation_elim_shadow ~used:used' ~map:map' m)
     | Explode (v, c) -> Explode (value_elim_shadow ~used ~map v, c)
     | GenOp (op, v) -> GenOp (op, value_elim_shadow ~used ~map v)
+    | CompTypeAssert (m, c) -> CompTypeAssert (computation_elim_shadow ~used ~map m, c)
 
   let rec value_simplify = function
     | TmVar x -> TmVar x
@@ -338,6 +344,7 @@ module Term = struct
     | Fix (x, c, m) -> Fix (x, c, computation_simplify m)
     | Explode (v, c) -> Explode (value_simplify v, c)
     | GenOp (op, v) -> GenOp (op, value_simplify v)
+    | CompTypeAssert (m, c) -> CompTypeAssert (computation_simplify m, c) (* TODO *)
 end
 
 let type_var_counter = ref 0

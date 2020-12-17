@@ -84,4 +84,8 @@ and computation_infer ctx = function
       let type_in, type_out = Term.type_of_alg_op op in
       let constraints = Constraints.append (Type.Substitution.constraints_of map) ([(ty, type_in)], []) in
       Option.value_exn (unify Type.Substitution.empty constraints), Type.FType type_out
+  | CompTypeAssert (m, c) ->
+      let map, ty = computation_infer ctx m in
+      let constraints = Constraints.append (Type.Substitution.constraints_of map) ([], [(ty, c)]) in
+      Option.value_exn (unify Type.Substitution.empty constraints), c
 

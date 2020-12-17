@@ -66,7 +66,15 @@ let rec cbv_term used = function
       let c = mk_fresh_computation_type_var () in
       Term.Return (Term.Thunk (Fix (x, c, Term.SeqComp (cbv_term used' m, y, Type.UType c, Term.Force (Term.TmVar y, c)))))
       (* this should work if x is a function *)
+  | TypeAssert (v, ty) -> Term.CompTypeAssert (cbv_term used v, Type.FType (cbv_type ty))
 
+let rec cbn_type = function
+  | Lambda.Type.Var x -> Type.CompTyVar x
+  | Lambda.Type.Int -> Type.(FType IntType)
+  | Lambda.Type.Unit -> Type.(FType UnitType)
+  | Lambda.Type.Function (a, b) -> FunctionType (UType (cbn_type a), cbn_type b)
+  | Lambda.Type.Sum (a, b) -> FType (SumType (UType (cbn_type a), UType (cbn_type b)))
+  | Lambda.Type.Pair (a, b) -> FType (PairType (UType (cbn_type a), UType (cbn_type b)))
 
 let op_cbn_term = function
   | Lambda.Term.Int n -> Term.Return (Term.Const (Term.Int n))
@@ -90,3 +98,4 @@ let rec cbn_term used = function
       let z = Utils.mk_fresh_name "z" used in
       Term.SeqComp (cbn_term used v, z, mk_fresh_value_type_var (), Term.PatternMatch (Term.TmVar z, x, mk_fresh_value_type_var (), y, mk_fresh_value_type_var (), cbn_term (Set.add (Set.add (Set.add used z) x) y) m))
   | Fix (x, m) -> Fix (x, mk_fresh_computation_type_var (), cbn_term (Set.add used x) m)
+  | TypeAssert (m, c) -> CompTypeAssert (cbn_term used m, cbn_type c)

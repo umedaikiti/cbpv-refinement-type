@@ -39,5 +39,6 @@ module Term = struct
     | Pair of t * t
     | PatternMatch of t * string * string * t
     | Fix of string * t
+    | TypeAssert of t * Type.t
 end
 
