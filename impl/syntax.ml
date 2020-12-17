@@ -100,6 +100,7 @@ module Term = struct
   type constants =
     | Int of int
     | Add
+    | Leq
 
   type alg_op =
     | Fail
@@ -128,6 +129,7 @@ module Term = struct
   let constant_to_string = function
     | Int n -> string_of_int n
     | Add -> "(+)"
+    | Leq -> "(<=)"
 
   let type_of_operation arg_types body_type =
     Type.UType (List.fold_right arg_types ~f:(fun arg body -> Type.FunctionType (arg, body)) ~init:(Type.FType body_type))
@@ -135,6 +137,7 @@ module Term = struct
   let type_of_const = function
     | Int n -> Type.IntType
     | Add -> type_of_operation [Type.IntType; Type.IntType] Type.IntType
+    | Leq -> type_of_operation [Type.IntType; Type.IntType] Type.(SumType (UnitType, UnitType))
 
   let type_of_alg_op = function
     | Fail -> Type.(UnitType, EmptyType)

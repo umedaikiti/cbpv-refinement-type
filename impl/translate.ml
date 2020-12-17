@@ -29,6 +29,7 @@ let op_cbv_term = function
 (*  | Add -> Term.Return (Term.Thunk (Term.Lambda ("#x", Type.IntType, Term.Return (Term.Thunk (Term.Lambda ("#y", Type.IntType, Term.App (Term.App(Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType)))), Term.TmVar "#x", Type.(FunctionType (IntType, FType IntType))), Term.TmVar "#y", Type.FType Type.IntType)))))))*)
 (*  | Add -> return_thunk_lambda_app (Term.Force (Term.Const Term.Add, Type.(FunctionType (IntType, FunctionType(IntType, FType IntType))))) [("#x", Type.IntType); ("#y", Type.IntType)] Type.IntType*)
   | Add -> op_cbv_term_default Term.Add [("x", Type.IntType); ("y", Type.IntType)] Type.IntType
+  | Leq -> op_cbv_term_default Term.Leq [("x", Type.IntType); ("y", Type.IntType)] Type.(SumType (UnitType, UnitType))
 
 let rec cbv_term used = function
   | Lambda.Term.Var x -> Term.Return (Term.TmVar x)
@@ -70,6 +71,7 @@ let rec cbv_term used = function
 let op_cbn_term = function
   | Lambda.Term.Int n -> Term.Return (Term.Const (Term.Int n))
   | Add -> failwith "unimplemented"
+  | Leq -> failwith "unimplemented"
 
 let rec cbn_term used = function
   | Lambda.Term.Var x -> Term.Force (Term.TmVar x, mk_fresh_computation_type_var ())

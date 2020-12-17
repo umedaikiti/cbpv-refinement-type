@@ -37,6 +37,7 @@ let rec simplify_equalities_equal v u =
 let rec simplify_equalities =
   function
   | Formula.Equal (v, u) -> Formula.And (simplify_equalities_equal v u)
+  | Leq (v, u) -> Leq (v, u)
   | PVar (p, args) -> PVar (p, args)
   | True -> True
   | False -> False

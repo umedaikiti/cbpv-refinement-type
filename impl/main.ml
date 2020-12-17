@@ -49,4 +49,9 @@ let _ =
   let term = Term.(SeqComp(GenOp (Nondet, Unit), "y", Type.ValTyVar "b", Case (TmVar "y", "z", Type.ValTyVar "c", Return (Const (Int 0)), "z", Type.ValTyVar "d", Return (TmVar "x")))) in
   let ctx, t, _ = hm_infer ctx term in
   let _ = refinement_infer ctx t in
+  let ctx = Lambda.Type.([("x", Int)]) in
+  let t = Lambda.Term.(Case (App (App (Const Leq, Const (Int 0)), Var "x"), "y", Var "x", "y", Const (Int 0))) in
+  let ctx, t = cbv_translate ctx t in
+  let ctx, t, _ = hm_infer ctx t in
+  let _ = refinement_infer ctx t in
   ()

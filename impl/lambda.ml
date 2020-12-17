@@ -25,6 +25,7 @@ module Term = struct
   type op =
     | Int of int
     | Add
+    | Leq
 
   type t =
     | Var of string

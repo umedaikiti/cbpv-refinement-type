@@ -22,7 +22,8 @@ module Term = struct
     | Operation (o, args) -> Operation (o, List.map ~f:(subst map) args)
   let of_const = function
     | Syntax.Term.Int n -> Operation (Int n, [])
-    | Add -> failwith "impure"
+    | Add
+    | Leq -> failwith "impure"
   let rec of_pure_cbpv_term = function
     | Syntax.Term.TmVar x -> TmVar x
     | Unit -> Unit
@@ -65,6 +66,7 @@ module Formula = struct
     | True
     | False
     | Equal of Term.t * Term.t
+    | Leq of Term.t * Term.t
     | And of t list
     | Or of t list
     | Implies of t * t
@@ -74,6 +76,7 @@ module Formula = struct
     | True -> True
     | False -> False
     | Equal (v1, v2) -> Equal (Term.subst map v1, Term.subst map v2)
+    | Leq (v1, v2) -> Leq (Term.subst map v1, Term.subst map v2)
     | And fmls -> And (List.map ~f:(subst_term map) fmls)
     | Or fmls -> Or (List.map ~f:(subst_term map) fmls)
     | Implies (p, q) -> Implies (subst_term map p, subst_term map q)
@@ -86,6 +89,7 @@ module Formula = struct
     | True -> 100, "true"
     | False -> 100, "false"
     | Equal (x, y) -> 100, Term.to_string x ^ " = " ^ Term.to_string y
+    | Leq (x, y) -> 100, Term.to_string x ^ " <= " ^ Term.to_string y
     | And fmls -> 30, List.map ~f:(fun f -> to_string' f |> Utils.add_paren_if_needed 30) fmls |> String.concat ~sep:" /\\ "
     | Or fmls -> 20, List.map ~f:(fun f -> to_string' f |> Utils.add_paren_if_needed 20) fmls |> String.concat ~sep:" \\/ "
     | Implies (p, q) -> 10, (to_string' p |> add_paren_if_needed 10) ^ " => " ^ (to_string' q |> add_paren_if_needed 10)

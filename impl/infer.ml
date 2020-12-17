@@ -84,6 +84,11 @@ let refinement_type_of_const = function
       let y = mk_fresh_term_var () in
       let z = mk_fresh_term_var () in
       refinement_type_of_operation [(x, RefinedIntType (x, Logic.Formula.True)); (y, RefinedIntType (y, Logic.Formula.True))] (RefinedIntType (z, Logic.(Formula.Equal (TmVar z, Operation (Add, [TmVar x; TmVar y])))))
+  | Term.Leq ->
+      let x = mk_fresh_term_var () in
+      let y = mk_fresh_term_var () in
+      let z = mk_fresh_term_var () in
+      refinement_type_of_operation [(x, RefinedIntType (x, Logic.Formula.True)); (y, RefinedIntType (y, Logic.Formula.True))] (SumType (RefinedUnitType (z, Logic.(Formula.Leq (TmVar x, TmVar y))), RefinedUnitType (z, Logic.(Formula.Implies (Formula.Leq (TmVar x, TmVar y), Formula.False)))))
 
 let refinement_type_of_alg_op ctx = function
   | Term.Fail -> (* total correctness *)
