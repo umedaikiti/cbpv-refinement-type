@@ -315,9 +315,23 @@ module Term = struct
     | Force (Thunk m, c) -> computation_simplify m
     | Force (v, c) -> Force (value_simplify v, c)
     | Lambda (x, a, m) -> Lambda (x, a, computation_simplify m)
-    | App (c, v, ty) -> App (computation_simplify c, value_simplify v, ty) (* beta reduction? *)
-    | PatternMatch (v, x, a, y, b, m) -> PatternMatch (value_simplify v, x, a, y, b, computation_simplify m) (* beta reduction? *)
-    | Case (v, x, a, m, y, b, n) -> Case (value_simplify v, x, a, computation_simplify m, y, b, computation_simplify n) (* beta reduction? *)
+    | App (m, v, ty) ->
+        let v' = value_simplify v in
+        (match computation_simplify m with
+        | Lambda (x, _, m') -> computation_subst_term (Map.singleton (module String) x v') m' |> computation_simplify
+        | m' -> App (m', v', ty))
+    | PatternMatch (v, x, a, y, b, m) ->
+        let m' = computation_simplify m in
+        (match value_simplify v with
+        | Pair (v1, v2) -> computation_subst_term (Map.of_alist_exn (module String) [(x, v1); (y, v2)]) m' |> computation_simplify
+        | v' -> PatternMatch (v', x, a, y, b, m'))
+    | Case (v, x, a, m, y, b, n) ->
+        let m' = computation_simplify m in
+        let n' = computation_simplify n in
+        (match value_simplify v with
+        | Inl (v', _) -> computation_subst_term (Map.singleton (module String) x v') m' |> computation_simplify
+        | Inr (v', _) -> computation_subst_term (Map.singleton (module String) y v') n' |> computation_simplify
+        | v' -> Case (v', x, a, m', y, b, n'))
     | Fix (x, c, m) -> Fix (x, c, computation_simplify m)
     | Explode (v, c) -> Explode (value_simplify v, c)
     | GenOp (op, v) -> GenOp (op, value_simplify v)
