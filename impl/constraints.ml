@@ -29,6 +29,8 @@ let rec simplify_equalities_equal v u =
   | Term.Unit, Term.Unit -> []
   | Term.Inl v, Term.Inl u -> simplify_equalities_equal v u
   | Term.Inr v, Term.Inr u -> simplify_equalities_equal v u
+  | Term.Inl _, Term.Inr _ -> [Formula.False]
+  | Term.Inr _, Term.Inl _ -> [Formula.False]
   | Term.Pair (v1, v2), Term.Pair (u1, u2) -> simplify_equalities_equal v1 u1 @ simplify_equalities_equal v2 u2
   | _, _ -> [Formula.Equal (v, u)]
 
