@@ -154,15 +154,22 @@ and computation_verification_condition ctx = function
       (match tyv with
       | Refinement.PairType (x', a, b) ->
           let b = Refinement.value_subst (Map.singleton (module String) x' (Logic.Term.TmVar x)) b in
-          let constraints_m, tym = computation_verification_condition (RefinementContext.add (RefinementContext.add ctx x a) y b) m in
-          constraints_v @ constraints_m, tym
+          let ctx' = RefinementContext.add (RefinementContext.add ctx x a) y b in
+          let constraints_m, tym = computation_verification_condition ctx' m in
+          let underlying_type = computation_erasure tym in
+          let ty = refinement_template_computation ctx underlying_type in (* x and y are not free in ty *)
+          let constraints_sub_m = subtype_computation ctx' tym ty in
+          constraints_v @ constraints_m @ constraints_sub_m, ty
       | _ -> failwith "type mismatch")
   | Term.SeqComp (m, x, _, n) ->
       let constraints_m, tym = computation_verification_condition ctx m in
       (match tym with
       | Refinement.FType a ->
           let constraints_n, tyn = computation_verification_condition (RefinementContext.add ctx x a) n in
-          constraints_m @ constraints_n, tyn
+          let underlying_type = computation_erasure tyn in
+          let ty = refinement_template_computation ctx underlying_type in (* x is not free in ty *)
+          let constraints_sub_n = subtype_computation (RefinementContext.add ctx x a) tyn ty in
+          constraints_m @ constraints_n @ constraints_sub_n, ty
       | _ -> failwith "type mismatch")
   | Term.Case (v, x, _, m, y, _, n) ->
       let constraints_v, tyv = value_verification_condition ctx v in
@@ -172,7 +179,7 @@ and computation_verification_condition ctx = function
           let constraints_n, tyn = computation_verification_condition (RefinementContext.add ctx y b) n in
           let underlying_type = computation_erasure tym in
           (* assert (computation_erasure tym = computation_erasure tyn); (*todo: equality up to alpha conversion*) *)
-          let ty = refinement_template_computation ctx underlying_type in
+          let ty = refinement_template_computation ctx underlying_type in (* x and y are not free in ty *)
           let constraints_sub_m = subtype_computation (RefinementContext.add ctx x a) tym ty in
           let constraints_sub_n = subtype_computation (RefinementContext.add ctx y b) tyn ty in
           constraints_m @ constraints_n @ constraints_sub_m @ constraints_sub_n, ty
