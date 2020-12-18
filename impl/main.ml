@@ -18,7 +18,7 @@ let cbv_translate ctx t =
   ctx, t'
 
 let hm_infer ctx t =
-  let m, ty = computation_infer (Map.of_alist_exn (module String) ctx) t in
+  let m, ty = Option.value_exn (computation_infer (Map.of_alist_exn (module String) ctx) t) in
   let t' = Term.computation_subst_type m t in
   let ctx = List.map ~f:(fun (x, a) -> x, Type.Substitution.value_subst m a) ctx in
   print_endline "HM inference:";
