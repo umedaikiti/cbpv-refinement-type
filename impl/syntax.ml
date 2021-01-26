@@ -166,7 +166,7 @@ module Term = struct
     | Case (v, x, a, m, y, b, n) -> Printf.sprintf "case %s of [inl (%s : %s) -> %s; inr (%s : %s) -> %s]" (value_to_string v) x (Type.value_to_string a) (computation_to_string m) y (Type.value_to_string b) (computation_to_string n)
     | Fix (x, c, m) -> Printf.sprintf "fix (%s : U %s). %s" x (Type.computation_to_string c) (computation_to_string m)
     | Explode (v, c) -> Printf.sprintf "case %s of ([] : %s)" (value_to_string v) (Type.computation_to_string c)
-    | GenOp (op, v) -> Printf.sprintf "%s (%s)" (alg_op_to_string op) (value_to_string v)
+    | GenOp (op, v) -> Printf.sprintf "%s %s" (alg_op_to_string op) (value_to_string v)
     | CompTypeAssert (m, c) -> Printf.sprintf "(%s : %s)" (computation_to_string m) (Type.computation_to_string c)
 
   (*let rec free_type_var_in_value and free_type_var_in_computation*)
