@@ -59,6 +59,136 @@
 %\setlength{\abovedisplayshortskip}{3pt}
 %\setlength{\belowdisplayshortskip}{3pt}
 \section{Unification}
+\newcommand{\arity}[1]{\mathrm{ar}({#1})}
+\newcommand{\term}[2]{T^{#1}_{#2}}
+\newcommand{\fv}[1]{\mathrm{fv}({#1})}
+\newcommand{\dom}{\mathrm{dom}}
+\newcommand{\cod}{\mathrm{cod}}
+Let $\Sigma$ be a set of operation.
+For each $f \in \Sigma$, we denote the arity of $f$ by $\arity{f}$.
+Let $X$ be a (countable) set of variables.
+Let $\term{\Sigma}{X}$ be the set of $\Sigma$-terms.
+For each $\sigma : X \to \term{\Sigma}{X}$ and $t \in \term{\Sigma}{X}$, we denote the substitution by $\sigma t$.
+Let $\fv{t}$ be the set of free variables in $t \in \term{\Sigma}{X}$.
+The support of $\sigma : X \to \term{\Sigma}{X}$ is defined by $\dom(\sigma) = \{ x \in X \mid \sigma(x) \neq x \}$.
+The mapping $\sigma : X \to \term{\Sigma}{X}$ is finitely supported if $\dom(\sigma)$ is finite and denoted $\sigma : X \to_{f} \term{\Sigma}{X}$.
+
+\begin{mydefinition}
+	Let $\sigma, \theta : X \to_{f} \term{\Sigma}{X}$.
+	We define $\sigma \le \theta$ by
+	\[ \sigma \le \theta \iff \exists \tau : X \to_{f} \term{\Sigma}{X}, \tau \comp \sigma = \theta \]
+\end{mydefinition}
+
+\begin{mydefinition}
+	Let $E \subseteq (\term{\Sigma}{X})^2$ be a set of equations.
+	\[ \theta \vDash E \iff \forall (s, t) \in E, \theta s = \theta t \]
+\end{mydefinition}
+
+\[ S \coloneqq \{ \sigma : X \to_{f} \term{\Sigma}{X} \mid \dom(\sigma) \cap \left( \bigcup_{t \in \cod(\sigma)} \fv{t} \right) = \emptyset \} \]
+\begin{mylemma}\label{lem:subst_idempotent}
+	If $\sigma \in S$, then $\sigma \comp \sigma = \sigma$.
+	\qed
+\end{mylemma}
+
+\begin{mydefinition}\label{def:unification}
+	We define a relation $({\to}) \subseteq (S \times P((\term{\Sigma}{X})^2) \cup \{ \bot \})^2$ by
+	\begin{align}
+		(\sigma, \{ x = x \} \cup E) &\to (\sigma, E) \label{eq:unification_trivial} \\
+		(\sigma, \{ x = t \} \cup E) &\to (\sigma, \{ \sigma(x) = t \} \cup E) & \text{if $x \in \dom(\sigma)$} \label{eq:unification_lazy_subst} \\
+		(\sigma, \{ x = t \} \cup E) &\to ([x \mapsto \sigma t] \comp \sigma, E) & \text{if $x \notin \dom(\sigma)$ and $x \notin \fv{\sigma t}$} \label{eq:unification_update_sigma} \\
+		(\sigma, \{ x = t \} \cup E) &\to \bot & \text{if $x \in \fv{\sigma t}$} \label{eq:unification_circular} \\
+		(\sigma, \{ t = x \} \cup E) &\to (\sigma, \{ x = t \} \cup E) \label{eq:unification_swap} \\
+		(\sigma, \{ f(s_1, \dots, s_{\arity{f}}) = f(t_1, \dots, t_{\arity{f}}) \} \cup E) &\to (\sigma, \{ s_1 = t_1, \dots, s_{\arity{f}} = t_{\arity{f}} \} \cup E) \label{eq:unification_same_operation} \\
+		(\sigma, \{ f(\dots) = g(\dots) \} \cup E) &\to \bot & \text{if $f \neq g$} \label{eq:unification_different_operation}
+	\end{align}
+\end{mydefinition}
+
+\begin{mylemma}
+	\[ \fv{\sigma t} \subseteq (\fv{t} \setminus \dom(\sigma)) \cup \bigcup_{s \in \cod{\sigma}} \fv{s} \]
+\end{mylemma}
+\begin{proof}
+	By induction on $t$.
+	There are three cases: (1) $t = x$ where $x \in \dom(\sigma)$ (2) $t = x$ where $x \notin \dom(\sigma)$ (3) $t = f(t_1, \dots, t_n)$.
+	The proof is straightforward.
+	\qed
+\end{proof}
+
+\begin{mylemma}
+	Let $Y \subseteq X$ and $\sigma|_{Y}$ be the restriction of $\sigma$ to $Y$:
+	\[ \sigma|_{Y}(x) = \begin{cases}
+		\sigma(x) & x \in Y \\
+		x & x \notin Y
+	\end{cases} \]
+	For each $t \in \term{\Sigma}{X}$, we have $\sigma(t) = \sigma|_{\fv{t}} (t)$.
+	\qed
+\end{mylemma}
+
+\begin{mylemma}\label{lem:x_t}
+	If $\sigma (x) = \sigma(t)$ and $x \notin \fv{t}$, then $\sigma = \sigma|_{\dom(\sigma) \setminus \{ x \}} \comp [x \mapsto t]$.
+\end{mylemma}
+\begin{proof}
+	We prove $\sigma(y) = (\sigma|_{\dom(\sigma) \setminus \{ x \}} \comp [x \mapsto t])(y)$ for each $y \in X$.
+	If $y \notin \dom(\sigma)$ or $y \in \dom(\sigma) \setminus \{ x \}$, then this is obvious.
+	If $y = x$, then $(\sigma|_{\dom(\sigma) \setminus \{ x \}} \comp [x \mapsto t])(x) = \sigma_{\dom(\sigma) \setminus \{ x \}}(t) = \sigma(t) = \sigma(x)$ because $x \notin \fv{t}$.
+	\qed
+\end{proof}
+
+\begin{mylemma}
+	Definition~\ref{def:unification} is well-defined: if $\sigma \in S$, $E \in P((\term{\Sigma}{X})^2)$, and $(\sigma, E) \to (\sigma', E')$, then $\sigma' \in S$.
+\end{mylemma}
+\begin{proof}
+	The only non-trivial case is \eqref{eq:unification_update_sigma}, in which.
+	\[ \dom([x \mapsto \sigma t] \comp \sigma) = \dom(\sigma) \cup \{ x \} \]
+	\begin{align}
+		\bigcup_{s \in \cod([x \mapsto \sigma t] \comp \sigma)} \fv{s} &= \bigcup_{s \in \cod(\sigma)} \fv{[x \mapsto \sigma t] s} \cup \fv{\sigma t} \\
+		&= \left( \bigcup_{s \in \cod(\sigma)} \fv{s} \cup \fv{t} \right) \setminus (\dom(\sigma) \cup \{ x \})
+	\end{align}
+	\qed
+\end{proof}
+
+\begin{myconjecture}
+	The mapping
+	\begin{align}
+		(\sigma, E) &\mapsto \{ \theta : X \to_{f} \term{\Sigma}{X} \mid \sigma \le \theta \land \theta \vDash E \} \\
+		\bot &\mapsto \emptyset
+	\end{align}
+	is an invariant for ${\to}$.
+\end{myconjecture}
+\begin{proof}
+	\eqref{eq:unification_trivial}: $E \vDash x = x$ is always true.
+
+	\eqref{eq:unification_lazy_subst}: By Lemma~\ref{lem:subst_idempotent}, for each $\sigma \le \theta$, $\theta = \theta \comp \sigma$.
+	Therefore $\theta \vDash x = t$ if and only if $\theta \vDash \sigma(x) = t$.
+
+	\eqref{eq:unification_update_sigma}: If $\sigma \le \theta$ and $\theta \vDash \{x = t\} \cup E$, then there exists $\tau$ such that $\theta = \tau \comp \sigma$.
+	The mapping $\tau$ satisfies $\tau \vDash x = \sigma(t)$.
+	By Lemma~\ref{lem:x_t}, $\tau = \tau|_{\dom(\tau) \setminus \{ x \}} \comp [x \mapsto \sigma(t)]$.
+	Therefore, $[x \mapsto \sigma(t)] \comp \sigma \le \theta$.
+	Conversely, if $[x \mapsto \sigma(t)] \comp \sigma \le \theta$ and $\theta \vDash E$, then $\sigma \le \theta$ and $\theta \vDash \{x = t\} \cup E$ hold.
+
+	\eqref{eq:unification_circular}: If $x \in \fv{t}$ and $t \neq x$, then for each $\theta$, $\theta (x) \neq \theta(t)$ because they have different maximum depths.
+
+	\eqref{eq:unification_swap}: By symmetry of the equation.
+
+	\eqref{eq:unification_same_operation}: $\theta \vDash f(s_1, \dots, s_{\arity{f}}) = \theta \vDash f(t_1, \dots, t_{\arity{f}})$ if and only if $E \vDash s_i = t_i$ for each $i = 1, \dots, \arity{f}$.
+
+	\eqref{eq:unification_different_operation}: For each $\theta$, $\theta(f(\dots)) \neq \theta(g(\dots))$.
+\end{proof}
+
+\begin{myconjecture}
+	$f : (\dots) \to \nat$ defined by (...) satisfy $x \to y \implies f(x) > f(y)$.
+\end{myconjecture}
+
+\begin{mycorollary}
+	For any $(\sigma, E)$, either of the following holds.
+	\begin{enumerate}
+		\item There exists $\theta$ such that $(\sigma, E) \to^{*} (\theta, \emptyset)$.
+		\item $(\sigma, E) \to^{*} \bot$.
+	\end{enumerate}
+\end{mycorollary}
+\begin{mycorollary}
+	If $(\emptyset, E) \to^{*} (\sigma, \emptyset)$, then for each $\theta$, $\sigma \le \theta \iff \theta \vDash E$.
+\end{mycorollary}
 
 \section{Type System}
 
