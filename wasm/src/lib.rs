@@ -5,6 +5,7 @@ use lib::context::Context;
 use lib::lambda;
 use lib::refinement::infer;
 use lib::underlying;
+use std::collections::HashSet;
 use std::fmt::Write;
 
 use wasm_bindgen::prelude::*;
@@ -52,7 +53,7 @@ fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<String, String> 
         }
     };
     writeln!(log, "{:#?}", term).or_else(write_error_handler)?;
-    let term = term.simplify();
+    let term = term.simplify(&HashSet::new());
     writeln!(log, "simplified term").or_else(write_error_handler)?;
     writeln!(log, "{:#?}", term).or_else(write_error_handler)?;
     let (m, ty) = term.infer(&mut Context::new())?;

@@ -5,6 +5,7 @@ use lib::context::Context;
 use lib::lambda;
 use lib::refinement::infer;
 use lib::underlying;
+use std::collections::HashSet;
 
 fn main() {
     let mut parser = nom::combinator::all_consuming(lambda::parser::term);
@@ -45,7 +46,7 @@ fn main() {
         let (_, term) = underlying::translate::cbv_of_lambda(&Context::new(), &t);
         println!("cbv");
         println!("{:#?}", term);
-        let term = term.simplify();
+        let term = term.simplify(&HashSet::new());
         println!("simplified term");
         println!("{:#?}", term);
         let (m, ty) = term.infer(&mut Context::new()).unwrap();
@@ -77,7 +78,7 @@ fn main() {
         let (_, t) = parser(s).unwrap();
         let (_, term) = underlying::translate::cbn_of_lambda(&Context::new(), &t);
         println!("{:?}", term);
-        let term = term.simplify();
+        let term = term.simplify(&HashSet::new());
         println!("{:?}", term);
         let (m, ty) = term.infer(&mut Context::new()).unwrap();
         let term = term.subst_type(&m);
