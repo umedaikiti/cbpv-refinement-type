@@ -601,11 +601,21 @@ pub fn simplify(
     Context<Vec<r#type::Value>>,
     Vec<(Context<r#type::Value>, Formula)>,
 ) {
-    let mut constraints_new = Vec::new();
-    for (ctx, fml) in constraints.into_iter() {
-        constraints_new.extend(remove_pair_sum_unit(ctx, fml));
+    fn is_empty_type(t: &r#type::Value) -> bool {
+        match t {
+            r#type::Value::Empty => true,
+            r#type::Value::Unit | r#type::Value::Int => false,
+            r#type::Value::Sum(a, b) => is_empty_type(a) && is_empty_type(b),
+            r#type::Value::Pair(a, b) => is_empty_type(a) || is_empty_type(b),
+            _ => panic!("impure type"),
+        }
     }
-    constraints_new.retain(|(ctx, _)| !ctx.0.iter().any(|(_, a)| *a == r#type::Value::Empty)); // remove constraints with empty type in the context
+    let mut constraints_new = Vec::new();
+    for (mut ctx, fml) in constraints.into_iter() {
+        let fv = fml.fv();
+        ctx.0.retain(|(x, a)| fv.contains(x) || is_empty_type(a));
+        constraints_new.extend(remove_pair_sum_unit_empty(ctx, fml));
+    }
     let mut new_pvar_ctx = Context::new();
     let mut new_used_pvar = HashSet::new();
     for (p, arg_types) in pvar_ctx.0.iter() {
@@ -620,15 +630,15 @@ pub fn simplify(
     (new_pvar_ctx, constraints_new)
 }
 
-pub fn remove_pair_sum_unit(
+pub fn remove_pair_sum_unit_empty(
     ctx: Context<r#type::Value>,
     fml: Formula,
 ) -> Vec<(Context<r#type::Value>, Formula)> {
     let mut used_var = ctx.vars();
-    remove_pair_sum_unit_sub(ctx, &mut used_var, fml)
+    remove_pair_sum_unit_empty_sub(ctx, &mut used_var, fml)
 }
 
-fn remove_pair_sum_unit_sub(
+fn remove_pair_sum_unit_empty_sub(
     mut ctx: Context<r#type::Value>,
     used_var: &mut HashSet<String>,
     mut fml: Formula,
@@ -637,7 +647,7 @@ fn remove_pair_sum_unit_sub(
         Some((x, a)) => match a {
             r#type::Value::Unit => {
                 used_var.remove(&x);
-                remove_pair_sum_unit_sub(
+                remove_pair_sum_unit_empty_sub(
                     ctx,
                     used_var,
                     fml.subst_term(&vec![(x, Term::Unit)].into_iter().collect()),
@@ -660,7 +670,7 @@ fn remove_pair_sum_unit_sub(
                 );
                 ctx.push(xa, *a);
                 ctx.push(xb, *b);
-                remove_pair_sum_unit_sub(ctx, used_var, fml)
+                remove_pair_sum_unit_empty_sub(ctx, used_var, fml)
             }
             r#type::Value::Sum(a, b) => {
                 let fml_inl = fml.subst_term(
@@ -677,11 +687,12 @@ fn remove_pair_sum_unit_sub(
                 ctx_l.push(x.clone(), *a);
                 let mut ctx_r = ctx;
                 ctx_r.push(x, *b);
-                let mut result = remove_pair_sum_unit_sub(ctx_l, used_var, fml_inl);
-                result.extend(remove_pair_sum_unit_sub(ctx_r, used_var, fml_inr));
+                let mut result = remove_pair_sum_unit_empty_sub(ctx_l, used_var, fml_inl);
+                result.extend(remove_pair_sum_unit_empty_sub(ctx_r, used_var, fml_inr));
                 result
             }
-            a => remove_pair_sum_unit_sub(ctx, used_var, fml)
+            r#type::Value::Empty => Vec::new(),
+            a => remove_pair_sum_unit_empty_sub(ctx, used_var, fml)
                 .into_iter()
                 .map(|(mut ctx, fml)| {
                     ctx.push(x.clone(), a.clone());
