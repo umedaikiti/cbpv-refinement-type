@@ -14,4 +14,5 @@ pub enum Term {
     Add,
     Leq,
     Explode(Box<Term>),
+    Fix(String, Box<Term>),
 }

@@ -263,6 +263,27 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
                 )),
             )
         }
+        Term::Fix(x, m) => {
+            let x_new = rctx.add(x);
+            let save_x = rctx.register_rename(x, &x_new);
+            let cbv_m = cbv_of_lambda_sub(m, rctx);
+            rctx.restore_rename(x, save_x);
+            rctx.remove(&x_new);
+            let fix_tmp = rctx.add("fix_tmp");
+            rctx.remove(&fix_tmp);
+            Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Fix(
+                x_new,
+                Box::new(Computation::SeqComp(
+                    Box::new(cbv_m),
+                    (
+                        fix_tmp.clone(),
+                        r#type::Value::Var(r#type::Value::mk_fresh_name()),
+                    ),
+                    Box::new(Computation::Force(Box::new(Value::Var(fix_tmp)))),
+                )),
+                r#type::Computation::Var(r#type::Computation::mk_fresh_name()),
+            )))))
+        }
         Term::Fail => Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Fail)))),
         Term::Add => {
             let x = rctx.add("x");
@@ -414,6 +435,18 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
                 Box::new(Value::Thunk(Box::new(cbn_v))),
                 Box::new(Value::Thunk(Box::new(cbn_w))),
             )))
+        }
+        Term::Fix(x, m) => {
+            let x_new = rctx.add(x);
+            let save_x = rctx.register_rename(x, &x_new);
+            let cbn_m = cbn_of_lambda_sub(m, rctx);
+            rctx.restore_rename(x, save_x);
+            rctx.remove(&x_new);
+            Computation::Fix(
+                x_new,
+                Box::new(cbn_m),
+                r#type::Computation::Var(r#type::Computation::mk_fresh_name()),
+            )
         }
         Term::Fail => {
             let x = rctx.add("x");

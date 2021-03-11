@@ -6,7 +6,7 @@ use nom::{
 
 fn ident(s: &str) -> IResult<&str, String> {
     let reserved = [
-        "with", "in", "match", "fun", "case", "inl", "inr", "add", "leq", "fail",
+        "with", "in", "match", "fun", "case", "inl", "inr", "add", "leq", "fail", "let", "rec",
     ];
     let (s, id) = verify(
         recognize(nom::sequence::pair(
@@ -166,6 +166,34 @@ fn leq(s: &str) -> IResult<&str, Term> {
     Ok((s, Term::Leq))
 }
 
+fn let_rec(s: &str) -> IResult<&str, Term> {
+    let (s, _) = tag("let")(s)?;
+    let (s, _) = multispace1(s)?;
+    let (s, _) = tag("rec")(s)?;
+    let (s, _) = multispace1(s)?;
+    let (s, ids) = nom::multi::separated_list1(multispace1, ident)(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, _) = tag("=")(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, mut m) = term(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, _) = tag("in")(s)?;
+    let (s, _) = multispace1(s)?;
+    let (s, n) = term(s)?;
+    let mut ids: Vec<String> = ids.into_iter().rev().collect();
+    let f = ids.pop().unwrap();
+    for x in ids.into_iter() {
+        m = Term::Lambda(x, Box::new(m));
+    }
+    Ok((
+        s,
+        Term::App(
+            Box::new(Term::Lambda(f.clone(), Box::new(n))),
+            Box::new(Term::Fix(f, Box::new(m))),
+        ),
+    ))
+}
+
 pub fn term(s: &str) -> IResult<&str, Term> {
     let (s, v) = delimited(
         multispace0,
@@ -180,6 +208,7 @@ pub fn term(s: &str) -> IResult<&str, Term> {
                 abstraction,
                 case,
                 pattern_match,
+                let_rec,
                 integer,
                 fail,
                 add,
