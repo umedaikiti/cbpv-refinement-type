@@ -111,9 +111,9 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::App(m, n) => {
             let cbv_m = cbv_of_lambda_sub(m, rctx);
-            let f = rctx.add("f");
+            let f = rctx.add("app_fun");
             let cbv_n = cbv_of_lambda_sub(n, rctx);
-            let x = rctx.add("x");
+            let x = rctx.add("app_arg");
             rctx.remove(&x);
             rctx.remove(&f);
             Computation::SeqComp(
@@ -138,9 +138,9 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         Term::Unit => Computation::Return(Box::new(Value::Unit)),
         Term::Pair(v, w) => {
             let cbv_v = cbv_of_lambda_sub(v, rctx);
-            let x = rctx.add("x");
+            let x = rctx.add("pair_val_1");
             let cbv_w = cbv_of_lambda_sub(w, rctx);
-            let y = rctx.add("y");
+            let y = rctx.add("pair_val_2");
             rctx.remove(&y);
             rctx.remove(&x);
             Computation::SeqComp(
@@ -164,7 +164,7 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::Inr(v) => {
             let cbv_v = cbv_of_lambda_sub(v, rctx);
-            let x = rctx.add("x");
+            let x = rctx.add("inr_val");
             rctx.remove(&x);
             Computation::SeqComp(
                 Box::new(cbv_v),
@@ -180,7 +180,7 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::Inl(v) => {
             let cbv_v = cbv_of_lambda_sub(v, rctx);
-            let x = rctx.add("x");
+            let x = rctx.add("inl_val");
             rctx.remove(&x);
             Computation::SeqComp(
                 Box::new(cbv_v),
@@ -196,7 +196,7 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::Case(v, x, m, y, n) => {
             let cbv_v = cbv_of_lambda_sub(v, rctx);
-            let z = rctx.add("z");
+            let z = rctx.add("case_val");
             let x_new = rctx.add(x);
             let save_x = rctx.register_rename(x, &x_new);
             let cbv_m = cbv_of_lambda_sub(m, rctx);
@@ -225,7 +225,7 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::PatternMatch(v, x, y, m) => {
             let cbv_v = cbv_of_lambda_sub(v, rctx);
-            let z = rctx.add("z");
+            let z = rctx.add("pm_val");
             let x_new = rctx.add(x);
             let save_x = rctx.register_rename(x, &x_new);
             let y_new = rctx.add(y);
@@ -252,7 +252,7 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::Explode(v) => {
             let cbv_v = cbv_of_lambda_sub(v, rctx);
-            let z = rctx.add("z");
+            let z = rctx.add("explode_val");
             rctx.remove(&z);
             Computation::SeqComp(
                 Box::new(cbv_v),
@@ -286,8 +286,8 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::Fail => Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Fail)))),
         Term::Add => {
-            let x = rctx.add("x");
-            let y = rctx.add("y");
+            let x = rctx.add("add_arg_1");
+            let y = rctx.add("add_arg_2");
             rctx.remove(&y);
             rctx.remove(&x);
             let term = Computation::Add;
@@ -304,8 +304,8 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
             term
         }
         Term::Leq => {
-            let x = rctx.add("x");
-            let y = rctx.add("y");
+            let x = rctx.add("leq_arg_1");
+            let y = rctx.add("leq_arg_2");
             rctx.remove(&y);
             rctx.remove(&x);
             let term = Computation::Leq;
@@ -361,7 +361,7 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::Case(v, x, m, y, n) => {
             let cbn_v = cbn_of_lambda_sub(v, rctx);
-            let z = rctx.add("z");
+            let z = rctx.add("case_val");
             let x_new = rctx.add(x);
             let save_x = rctx.register_rename(x, &x_new);
             let cbn_m = cbn_of_lambda_sub(m, rctx);
@@ -390,7 +390,7 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::PatternMatch(v, x, y, m) => {
             let cbn_v = cbn_of_lambda_sub(v, rctx);
-            let z = rctx.add("z");
+            let z = rctx.add("pm_val");
             let x_new = rctx.add(x);
             let save_x = rctx.register_rename(x, &x_new);
             let y_new = rctx.add(y);
@@ -417,7 +417,7 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
         }
         Term::Explode(v) => {
             let cbn_v = cbn_of_lambda_sub(v, rctx);
-            let z = rctx.add("z");
+            let z = rctx.add("explode_val");
             rctx.remove(&z);
             Computation::SeqComp(
                 Box::new(cbn_v),
@@ -449,8 +449,8 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
             )
         }
         Term::Fail => {
-            let x = rctx.add("x");
-            let y = rctx.add("y");
+            let x = rctx.add("fail_arg");
+            let y = rctx.add("fail_arg_forced");
             rctx.remove(&y);
             rctx.remove(&x);
             Computation::Lambda(
@@ -471,10 +471,10 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
             )
         }
         Term::Add => {
-            let xc = rctx.add("xc");
-            let yc = rctx.add("yc");
-            let xv = rctx.add("xv");
-            let yv = rctx.add("yv");
+            let xc = rctx.add("add_arg_1");
+            let yc = rctx.add("add_arg_2");
+            let xv = rctx.add("add_arg_1_forced");
+            let yv = rctx.add("add_arg_2_forced");
             rctx.remove(&yv);
             rctx.remove(&xv);
             rctx.remove(&yc);
@@ -513,11 +513,11 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
             term
         }
         Term::Leq => {
-            let xc = rctx.add("xc");
-            let yc = rctx.add("yc");
-            let xv = rctx.add("xv");
-            let yv = rctx.add("yv");
-            let z = rctx.add("z");
+            let xc = rctx.add("leq_arg_1");
+            let yc = rctx.add("leq_arg_2");
+            let xv = rctx.add("leq_arg_1_forced");
+            let yv = rctx.add("leq_arg_2_forced");
+            let z = rctx.add("leq_result");
             let dummy = rctx.add("dummy");
             rctx.remove(&dummy);
             rctx.remove(&z);
