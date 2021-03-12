@@ -186,6 +186,10 @@ impl term::Computation {
                     )),
                 ),
             )),
+            term::Computation::NDInt => Ok((
+                r#type::Map::new(),
+                r#type::Computation::F(Box::new(r#type::Value::Int)),
+            )),
         }
     }
 }

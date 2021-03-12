@@ -321,6 +321,7 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
             )))));
             term
         }
+        Term::NDInt => Computation::NDInt,
     }
 }
 
@@ -560,5 +561,6 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
             );
             term
         }
+        Term::NDInt => Computation::NDInt,
     }
 }

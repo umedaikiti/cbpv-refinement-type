@@ -35,7 +35,7 @@ fn main() {
         "fun x -> case leq x (add x 1) in inl y -> x | inr y -> add x 1",
         "fun x -> add x 1",
         "let rec f x = add x 1 in f",
-        "let rec f x = case leq 0 x in inl z -> add x (f (add x (-1))) | inr z -> 0 in fun x -> case leq 0 (f x) in inl y -> () | inr y -> fail",
+        "let rec f x = case leq 0 x in inl z -> add x (f (add x (-1))) | inr z -> 0 in case leq 0 (f ?) in inl y -> () | inr y -> fail",
     ];
     for s in inference_tests.iter() {
         println!("input");

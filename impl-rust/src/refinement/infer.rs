@@ -414,5 +414,12 @@ pub fn computation(
                 ),
             )
         }
+        term::Computation::NDInt => {
+            let dummy = utils::mk_fresh_name("ndint", &ctx.vars());
+            (
+                Vec::new(),
+                rtype::Computation::F(Box::new(rtype::Value::Int(dummy, Formula::True))),
+            )
+        }
     }
 }

@@ -5,6 +5,7 @@ pub enum Term {
     App(Box<Term>, Box<Term>),
     Unit,
     Int(i64),
+    NDInt,
     Pair(Box<Term>, Box<Term>),
     Inr(Box<Term>),
     Inl(Box<Term>),

@@ -194,6 +194,11 @@ fn let_rec(s: &str) -> IResult<&str, Term> {
     ))
 }
 
+fn nondet_int(s: &str) -> IResult<&str, Term> {
+    let (s, _) = tag("?")(s)?;
+    Ok((s, Term::NDInt))
+}
+
 pub fn term(s: &str) -> IResult<&str, Term> {
     let (s, v) = delimited(
         multispace0,
@@ -213,6 +218,7 @@ pub fn term(s: &str) -> IResult<&str, Term> {
                 fail,
                 add,
                 leq,
+                nondet_int,
                 variable,
             )),
         ),

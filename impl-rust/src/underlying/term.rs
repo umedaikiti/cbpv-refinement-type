@@ -122,6 +122,7 @@ pub enum Computation {
     Fail,
     Add,
     Leq,
+    NDInt,
 }
 
 impl Computation {
@@ -162,6 +163,7 @@ impl Computation {
             Computation::Fail => Computation::Fail,
             Computation::Add => Computation::Add,
             Computation::Leq => Computation::Leq,
+            Computation::NDInt => Computation::NDInt,
         }
     }
     pub fn simplify(&self, used_var: &HashSet<String>) -> Self {
@@ -266,6 +268,7 @@ impl Computation {
             Computation::Fail => Computation::Fail,
             Computation::Add => Computation::Add,
             Computation::Leq => Computation::Leq,
+            Computation::NDInt => Computation::NDInt,
         }
     }
     // fv(map) is a subset of used_var
@@ -364,6 +367,7 @@ impl Computation {
             Computation::Fail => Computation::Fail,
             Computation::Add => Computation::Add,
             Computation::Leq => Computation::Leq,
+            Computation::NDInt => Computation::NDInt,
         }
     }
     //pub fn elim_shadow(
