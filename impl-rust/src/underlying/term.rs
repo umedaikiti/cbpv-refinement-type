@@ -1,5 +1,6 @@
 use super::super::utils;
 use super::r#type;
+use super::r#type::VarSet;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -56,6 +57,22 @@ impl Value {
             Value::Inl(v, b) => Value::Inl(Box::new(v.subst(map, used_var)), b.clone()),
             Value::Inr(v, a) => Value::Inr(Box::new(v.subst(map, used_var)), a.clone()),
             Value::Thunk(m) => Value::Thunk(Box::new(m.subst(map, used_var))),
+        }
+    }
+    pub fn free_type_vars(&self) -> VarSet {
+        match self {
+            Value::Var(_) | Value::Unit | Value::Int(_) => VarSet::new(),
+            Value::Pair(v, w) => {
+                let mut fv = v.free_type_vars();
+                fv.extend(w.free_type_vars());
+                fv
+            }
+            Value::Inl(v, a) | Value::Inr(v, a) => {
+                let mut fv = v.free_type_vars();
+                fv.extend(a.fv());
+                fv
+            }
+            Value::Thunk(m) => m.free_type_vars(),
         }
     }
     //pub fn bv(&self) -> Option<Context<r#type::Value>> {
@@ -164,6 +181,56 @@ impl Computation {
             Computation::Add => Computation::Add,
             Computation::Leq => Computation::Leq,
             Computation::NDInt => Computation::NDInt,
+        }
+    }
+    pub fn free_type_vars(&self) -> VarSet {
+        match self {
+            Computation::Return(v) => v.free_type_vars(),
+            Computation::SeqComp(m, (_, a), n) => {
+                let mut fv = m.free_type_vars();
+                fv.extend(a.fv());
+                fv.extend(n.free_type_vars());
+                fv
+            }
+            Computation::Lambda((_, a), m) => {
+                let mut fv = a.fv();
+                fv.extend(m.free_type_vars());
+                fv
+            }
+            Computation::App(m, v) => {
+                let mut fv = m.free_type_vars();
+                fv.extend(v.free_type_vars());
+                fv
+            }
+            Computation::PatternMatch(v, (_, a), (_, b), m) => {
+                let mut fv = v.free_type_vars();
+                fv.extend(a.fv());
+                fv.extend(b.fv());
+                fv.extend(m.free_type_vars());
+                fv
+            }
+            Computation::Case(v, (_, a), m, (_, b), n) => {
+                let mut fv = v.free_type_vars();
+                fv.extend(a.fv());
+                fv.extend(m.free_type_vars());
+                fv.extend(b.fv());
+                fv.extend(n.free_type_vars());
+                fv
+            }
+            Computation::Force(v) => v.free_type_vars(),
+            Computation::Fix(_, m, c) => {
+                let mut fv = m.free_type_vars();
+                fv.extend(c.fv());
+                fv
+            }
+            Computation::Explode(v, c) => {
+                let mut fv = v.free_type_vars();
+                fv.extend(c.fv());
+                fv
+            }
+            Computation::Fail | Computation::Add | Computation::Leq | Computation::NDInt => {
+                VarSet::new()
+            }
         }
     }
     pub fn simplify(&self, used_var: &HashSet<String>) -> Self {

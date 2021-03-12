@@ -53,7 +53,7 @@ fn main() {
         let term = term.subst_type(&m);
         println!("simple type inference");
         println!("{:?} : {}", term, ty.subst(&m));
-        if m.fv_cod().is_empty() {
+        if term.free_type_vars().is_empty() {
             let mut used_pvar = Context::new();
             let (c, t) = infer::computation(&mut Context::new(), &term, &mut used_pvar);
             println!("raw constraints");
@@ -83,7 +83,7 @@ fn main() {
         let (m, ty) = term.infer(&mut Context::new()).unwrap();
         let term = term.subst_type(&m);
         println!("{:?} : {}", term, ty.subst(&m));
-        if m.fv_cod().is_empty() {
+        if term.free_type_vars().is_empty() {
             let mut used_pvar = Context::new();
             let (c, t) = infer::computation(&mut Context::new(), &term, &mut used_pvar);
             let (used_pvar, c) = lib::logic::simplify(used_pvar, c);

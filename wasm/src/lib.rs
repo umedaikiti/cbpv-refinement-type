@@ -60,7 +60,7 @@ fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<String, String> 
     let term = term.subst_type(&m);
     writeln!(log, "HM type inference").or_else(write_error_handler)?;
     writeln!(log, "{:?} : {}", term, ty.subst(&m)).or_else(write_error_handler)?;
-    if m.fv_cod().is_empty() {
+    if term.free_type_vars().is_empty() {
         let mut used_pvar = Context::new();
         let (c, t) = infer::computation(&mut Context::new(), &term, &mut used_pvar);
         writeln!(log, "refinement type").or_else(write_error_handler)?;
