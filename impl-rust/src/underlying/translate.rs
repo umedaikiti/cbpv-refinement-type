@@ -517,51 +517,18 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
             let yc = rctx.add("leq_arg_2");
             let xv = rctx.add("leq_arg_1_forced");
             let yv = rctx.add("leq_arg_2_forced");
-            let z = rctx.add("leq_result");
             let dummy = rctx.add("dummy");
             rctx.remove(&dummy);
-            rctx.remove(&z);
             rctx.remove(&yv);
             rctx.remove(&xv);
             rctx.remove(&yc);
             rctx.remove(&xc);
-            let term = Computation::Case(
-                Box::new(Value::Var(z.clone())),
-                (dummy.clone(), r#type::Value::Unit),
-                Box::new(Computation::Return(Box::new(Value::Inl(
-                    Box::new(Value::Thunk(Box::new(Computation::Return(Box::new(
-                        Value::Unit,
-                    ))))),
-                    r#type::Value::U(Box::new(r#type::Computation::F(Box::new(
-                        r#type::Value::Unit,
-                    )))),
-                )))),
-                (dummy, r#type::Value::Unit),
-                Box::new(Computation::Return(Box::new(Value::Inr(
-                    Box::new(Value::Thunk(Box::new(Computation::Return(Box::new(
-                        Value::Unit,
-                    ))))),
-                    r#type::Value::U(Box::new(r#type::Computation::F(Box::new(
-                        r#type::Value::Unit,
-                    )))),
-                )))),
-            );
-            let term = Computation::SeqComp(
+            let term = Computation::App(
                 Box::new(Computation::App(
-                    Box::new(Computation::App(
-                        Box::new(Computation::Leq),
-                        Box::new(Value::Var(xv.clone())),
-                    )),
-                    Box::new(Value::Var(yv.clone())),
+                    Box::new(Computation::Leq),
+                    Box::new(Value::Var(xv.clone())),
                 )),
-                (
-                    z,
-                    r#type::Value::Sum(
-                        Box::new(r#type::Value::Unit),
-                        Box::new(r#type::Value::Unit),
-                    ),
-                ),
-                Box::new(term),
+                Box::new(Value::Var(yv.clone())),
             );
             let term = Computation::SeqComp(
                 Box::new(Computation::Force(Box::new(Value::Var(yc.clone())))),
