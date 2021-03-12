@@ -39,7 +39,7 @@ fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<String, String> 
     lib::logic::Formula::reset_pname_counter();
     let write_error_handler = |e| Err(format!("log error: {}", e));
     let (_, t) = nom::combinator::all_consuming(lambda::parser::term)(s)
-        .or_else(|e| Err(format!("parse error: {}", e)))?;
+        .or_else(|e| Err(format!("{}", e)))?;
     writeln!(log, "parse result").or_else(write_error_handler)?;
     writeln!(log, "{:#?}", t).or_else(write_error_handler)?;
     let (_, term) = match ev {
@@ -90,7 +90,7 @@ pub fn to_smtlib_cbv(s: &str) -> Option<String> {
     match result {
         Ok(smtlib) => Some(smtlib),
         Err(e) => {
-            log(&e);
+            alert(&e);
             None
         }
     }
@@ -104,7 +104,7 @@ pub fn to_smtlib_cbn(s: &str) -> Option<String> {
     match result {
         Ok(smtlib) => Some(smtlib),
         Err(e) => {
-            log(&e);
+            alert(&e);
             None
         }
     }
