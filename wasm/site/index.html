@@ -2,7 +2,8 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>CBPV refinement type system</title>
+		<link rel="stylesheet" href="style.css">
+		<title>CBPV refinement type system (<%= htmlWebpackPlugin.options.version_info %>)</title>
 	</head>
 	<body>
 		<form>
@@ -12,5 +13,6 @@
 			<select name="examples" id="examples"><option disabled selected value></option></select><br>
 			<textarea id="output" readonly rows="30" cols="80"></textarea>
 		</form>
+		<div id="ast" style="font-family:monospace;"></div>
 	</body>
 </html>

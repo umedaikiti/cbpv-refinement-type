@@ -112,8 +112,8 @@ impl Value {
     }
     fn fmt_sub(&self, f: &mut fmt::Formatter, priority: i32) -> fmt::Result {
         match self {
-            Value::Int(x, fml) => write!(f, "{{ {}:int | {:?} }}", x, fml),
-            Value::Unit(x, fml) => write!(f, "{{ {}:unit | {:?} }}", x, fml),
+            Value::Int(x, fml) => write!(f, "{{ {}:int | {} }}", x, fml),
+            Value::Unit(x, fml) => write!(f, "{{ {}:unit | {} }}", x, fml),
             Value::Empty => write!(f, "empty"),
             Value::Pair(x, a, b) => {
                 let p = 20;

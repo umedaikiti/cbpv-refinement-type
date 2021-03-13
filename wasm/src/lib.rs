@@ -3,8 +3,9 @@ extern crate nom;
 extern crate wasm_bindgen;
 use lib::context::Context;
 use lib::lambda;
-use lib::refinement::infer;
+use lib::refinement::infer_debug;
 use lib::underlying;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt::Write;
 
@@ -30,12 +31,172 @@ pub fn parser(s: &str) -> String {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+enum AST {
+    Term {
+        name: String,
+        children: Vec<AST>,
+        r#type: String,
+    },
+    Binder {
+        name: String,
+        children: Vec<AST>,
+        //r#type: String,
+    },
+}
+
+fn value_to_ast(v: &infer_debug::Value) -> AST {
+    match &v.term {
+        infer_debug::ValueTerm::Var(x) => AST::Term {
+            name: format!("Var({})", x),
+            children: Vec::new(),
+            r#type: v.ty.to_string(),
+        },
+        infer_debug::ValueTerm::Unit => AST::Term {
+            name: "Unit".to_string(),
+            children: Vec::new(),
+            r#type: v.ty.to_string(),
+        },
+        infer_debug::ValueTerm::Int(i) => AST::Term {
+            name: format!("Int({})", i),
+            children: Vec::new(),
+            r#type: v.ty.to_string(),
+        },
+        infer_debug::ValueTerm::Inl(w, _) => AST::Term {
+            name: "Inl".to_string(),
+            children: vec![value_to_ast(w)],
+            r#type: v.ty.to_string(),
+        },
+        infer_debug::ValueTerm::Inr(w, _) => AST::Term {
+            name: "Inr".to_string(),
+            children: vec![value_to_ast(w)],
+            r#type: v.ty.to_string(),
+        },
+        infer_debug::ValueTerm::Pair(w1, w2) => AST::Term {
+            name: "Pair".to_string(),
+            children: vec![value_to_ast(w1), value_to_ast(w2)],
+            r#type: v.ty.to_string(),
+        },
+        infer_debug::ValueTerm::Thunk(m) => AST::Term {
+            name: "Thunk".to_string(),
+            children: vec![computation_to_ast(m)],
+            r#type: v.ty.to_string(),
+        },
+    }
+}
+fn computation_to_ast(m: &infer_debug::Computation) -> AST {
+    match &m.term {
+        infer_debug::ComputationTerm::Return(v) => AST::Term {
+            name: "Return".to_string(),
+            children: vec![value_to_ast(v)],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::SeqComp(n1, (x, _), n2) => AST::Term {
+            name: "SeqComp".to_string(),
+            children: vec![
+                computation_to_ast(n1),
+                AST::Binder {
+                    name: x.clone(),
+                    children: vec![computation_to_ast(n2)],
+                },
+            ],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::App(n, v) => AST::Term {
+            name: "App".to_string(),
+            children: vec![computation_to_ast(n), value_to_ast(v)],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::Lambda((x, _), n) => AST::Term {
+            name: "Lambda".to_string(),
+            children: vec![AST::Binder {
+                name: x.clone(),
+                children: vec![computation_to_ast(n)],
+            }],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::PatternMatch(v, (x, _), (y, _), n) => AST::Term {
+            name: "PatternMatch".to_string(),
+            children: vec![
+                value_to_ast(v),
+                AST::Binder {
+                    name: x.clone(),
+                    children: vec![AST::Binder {
+                        name: y.clone(),
+                        children: vec![computation_to_ast(n)],
+                    }],
+                },
+            ],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::Case(v, (x, _), n1, (y, _), n2) => AST::Term {
+            name: "Case".to_string(),
+            children: vec![
+                value_to_ast(v),
+                AST::Binder {
+                    name: x.clone(),
+                    children: vec![computation_to_ast(n1)],
+                },
+                AST::Binder {
+                    name: y.clone(),
+                    children: vec![computation_to_ast(n2)],
+                },
+            ],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::Explode(v, _) => AST::Term {
+            name: "Explode".to_string(),
+            children: vec![value_to_ast(v)],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::Fix(x, n, _) => AST::Term {
+            name: "Fix".to_string(),
+            children: vec![AST::Binder {
+                name: x.clone(),
+                children: vec![computation_to_ast(n)],
+            }],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::Force(v) => AST::Term {
+            name: "Force".to_string(),
+            children: vec![value_to_ast(v)],
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::Fail => AST::Term {
+            name: "Fail".to_string(),
+            children: Vec::new(),
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::Add => AST::Term {
+            name: "Add".to_string(),
+            children: Vec::new(),
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::Leq => AST::Term {
+            name: "Leq".to_string(),
+            children: Vec::new(),
+            r#type: m.ty.to_string(),
+        },
+        infer_debug::ComputationTerm::NDInt => AST::Term {
+            name: "NDInt".to_string(),
+            children: Vec::new(),
+            r#type: m.ty.to_string(),
+        },
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct Data {
+    ast: Option<AST>,
+    smtlib: Option<String>,
+}
+
 enum Strategy {
     CBV,
     CBN,
 }
 
-fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<String, String> {
+fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<(AST, String), String> {
     lib::logic::Formula::reset_pname_counter();
     let write_error_handler = |e| Err(format!("log error: {}", e));
     let (_, t) = nom::combinator::all_consuming(lambda::parser::term)(s)
@@ -62,9 +223,7 @@ fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<String, String> 
     writeln!(log, "{:?} : {}", term, ty.subst(&m)).or_else(write_error_handler)?;
     if term.free_type_vars().is_empty() {
         let mut used_pvar = Context::new();
-        let (c, t) = infer::computation(&mut Context::new(), &term, &mut used_pvar);
-        writeln!(log, "refinement type").or_else(write_error_handler)?;
-        writeln!(log, "{}", t).or_else(write_error_handler)?;
+        let (c, t) = infer_debug::computation(&mut Context::new(), &term, &mut used_pvar);
         writeln!(log, "raw constraints").or_else(write_error_handler)?;
         for c in c.iter() {
             writeln!(log, "{:?}", c).or_else(write_error_handler)?;
@@ -76,36 +235,50 @@ fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<String, String> 
             writeln!(log, "{:?}", c).or_else(write_error_handler)?;
         }
         let smtlib = lib::logic::to_smtlib(&used_pvar, &c).ok_or("cannot encode to SMT LIB")?;
-        Ok(smtlib.to_string())
+        Ok((computation_to_ast(&t), smtlib.to_string()))
     } else {
         Err("HM type inference: not fully resolved".to_string())
     }
 }
 
 #[wasm_bindgen]
-pub fn to_smtlib_cbv(s: &str) -> Option<String> {
+pub fn to_smtlib_cbv(s: &str) -> JsValue {
     let mut l = String::new();
     let result = to_smtlib(s, &mut l, Strategy::CBV);
     log(&l);
-    match result {
-        Ok(smtlib) => Some(smtlib),
+    let data = match result {
+        Ok((ast, smtlib)) => Data {
+            ast: Some(ast),
+            smtlib: Some(smtlib),
+        },
         Err(e) => {
             alert(&e);
-            None
+            Data {
+                ast: None,
+                smtlib: None,
+            }
         }
-    }
+    };
+    JsValue::from_serde(&data).unwrap()
 }
 
 #[wasm_bindgen]
-pub fn to_smtlib_cbn(s: &str) -> Option<String> {
+pub fn to_smtlib_cbn(s: &str) -> JsValue {
     let mut l = String::new();
     let result = to_smtlib(s, &mut l, Strategy::CBN);
     log(&l);
-    match result {
-        Ok(smtlib) => Some(smtlib),
+    let data = match result {
+        Ok((ast, smtlib)) => Data {
+            ast: Some(ast),
+            smtlib: Some(smtlib),
+        },
         Err(e) => {
             alert(&e);
-            None
+            Data {
+                ast: None,
+                smtlib: None,
+            }
         }
-    }
+    };
+    JsValue::from_serde(&data).unwrap()
 }

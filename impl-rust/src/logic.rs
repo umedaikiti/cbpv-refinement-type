@@ -123,7 +123,39 @@ impl Term {
                     t.fmt_sub(f, p - 1)
                 }
             }
-            _ => unimplemented!(),
+            Term::Inr(t) => {
+                let p = 40;
+                if priority >= p {
+                    write!(f, "(inr ")?;
+                    t.fmt_sub(f, p - 1)?;
+                    write!(f, ")")
+                } else {
+                    write!(f, "inr ")?;
+                    t.fmt_sub(f, p - 1)
+                }
+            }
+            Term::Pair(s, t) => {
+                write!(f, "(")?;
+                s.fmt_sub(f, 0)?;
+                write!(f, ", ")?;
+                t.fmt_sub(f, 0)?;
+                write!(f, ")")
+            }
+            Term::Unit => write!(f, "()"),
+            Term::Add(s, t) => {
+                let p = 10;
+                if priority >= p {
+                    write!(f, "(")?;
+                    s.fmt_sub(f, p)?;
+                    write!(f, " + ")?;
+                    t.fmt_sub(f, p)?;
+                    write!(f, ")")
+                } else {
+                    s.fmt_sub(f, p)?;
+                    write!(f, " + ")?;
+                    t.fmt_sub(f, p)
+                }
+            }
         }
     }
 }
@@ -357,6 +389,77 @@ impl Formula {
             Formula::Equal(_, _) | Formula::Leq(_, _) => {}
         }
     }
+    fn fmt_sub<W: fmt::Write>(&self, f: &mut W, priority: i32) -> fmt::Result {
+        match self {
+            Formula::PVar(p, args) => {
+                write!(
+                    f,
+                    "{}({})",
+                    p,
+                    args.iter()
+                        .map(|arg| arg.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            Formula::Equal(s, t) => {
+                write!(f, "{} = {}", s, t)
+            }
+            Formula::Leq(s, t) => {
+                write!(f, "{} <= {}", s, t)
+            }
+            Formula::True => write!(f, "True"),
+            Formula::False => write!(f, "False"),
+            Formula::And(l) => {
+                let p = 40;
+                let mut l_str = Vec::new();
+                for g in l.iter() {
+                    let mut buf = String::new();
+                    g.fmt_sub(&mut buf, p)?;
+                    l_str.push(buf);
+                }
+                let l_str = l_str.join(" /\\ ");
+                if priority >= p {
+                    write!(f, "({})", l_str)
+                } else {
+                    write!(f, "{}", l_str)
+                }
+            }
+            Formula::Or(l) => {
+                let p = 30;
+                let mut l_str = Vec::new();
+                for g in l.iter() {
+                    let mut buf = String::new();
+                    g.fmt_sub(&mut buf, p)?;
+                    l_str.push(buf);
+                }
+                let l_str = l_str.join(" \\/ ");
+                if priority >= p {
+                    write!(f, "({})", l_str)
+                } else {
+                    write!(f, "{}", l_str)
+                }
+            }
+            Formula::Implies(g, h) => {
+                let p = 30;
+                let g_str = {
+                    let mut buf = String::new();
+                    g.fmt_sub(&mut buf, p)?;
+                    buf
+                };
+                let h_str = {
+                    let mut buf = String::new();
+                    h.fmt_sub(&mut buf, p - 1)?;
+                    buf
+                };
+                if priority >= p {
+                    write!(f, "({} => {})", g_str, h_str)
+                } else {
+                    write!(f, "{} => {}", g_str, h_str)
+                }
+            }
+        }
+    }
     //fn replace_pvar(&mut self, pattern: (&String, &Vec<Term>), to: (&String, &Vec<Term>)) {
     //    match self {
     //        Formula::PVar(p, args) => {
@@ -419,6 +522,12 @@ impl Formula {
 //        Formula::PVar("Q".to_string(), vec![Term::Var("x".to_string())])
 //    );
 //}
+
+impl fmt::Display for Formula {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.fmt_sub(f, 0)
+    }
+}
 
 impl r#type::Value {
     pub fn to_smtlib(&self) -> Option<smtlib::Sort> {

@@ -13,7 +13,8 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: 'index.html'
+      template: 'index.html',
+      version_info: process.env.VERSION
 	}),
     new WasmPackPlugin({
       crateDirectory: path.join(__dirname, "../")
