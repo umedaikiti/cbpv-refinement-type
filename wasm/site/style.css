@@ -31,4 +31,6 @@ ul {
 /* Show the nested list when the user clicks on the caret/arrow (with JavaScript) */
 .active {
   display: block;
+  /*border-left: 1px solid black;*/
 }
+
