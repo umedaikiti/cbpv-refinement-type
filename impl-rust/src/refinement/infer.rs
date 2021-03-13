@@ -10,6 +10,7 @@ impl rtype::Value {
         ctx: &mut Context<rtype::Value>,
         ut: &utype::Value,
         used_pvar: &mut Context<Vec<utype::Value>>,
+        var_name_hint: &str,
     ) -> rtype::Value {
         match ut {
             utype::Value::Var(_) => panic!("refining type variables is not allowed"),
@@ -20,7 +21,7 @@ impl rtype::Value {
                     pname.clone(),
                     pure_ctx.0.iter().map(|(_, a)| a.clone()).collect(),
                 );
-                let v = utils::mk_fresh_name("dummy", &pure_ctx.vars());
+                let v = utils::mk_fresh_name(var_name_hint, &pure_ctx.vars());
                 rtype::Value::Unit(
                     v,
                     Formula::PVar(
@@ -30,7 +31,7 @@ impl rtype::Value {
                 )
             }
             utype::Value::Int => {
-                let v = utils::mk_fresh_name("v", &ctx.vars());
+                let v = utils::mk_fresh_name(var_name_hint, &ctx.vars());
                 let mut pure_ctx = ctx.erase_purify();
                 pure_ctx.push(v.clone(), utype::Value::Int);
                 let pname = Formula::mk_fresh_pname();
@@ -48,20 +49,32 @@ impl rtype::Value {
             }
             utype::Value::Empty => rtype::Value::Empty,
             utype::Value::Sum(a, b) => {
-                let a = rtype::Value::refinement_template(ctx, a, used_pvar);
-                let b = rtype::Value::refinement_template(ctx, b, used_pvar);
+                let a = rtype::Value::refinement_template(
+                    ctx,
+                    a,
+                    used_pvar,
+                    &format!("{}_l", var_name_hint),
+                );
+                let b = rtype::Value::refinement_template(
+                    ctx,
+                    b,
+                    used_pvar,
+                    &format!("{}_r", var_name_hint),
+                );
                 rtype::Value::Sum(Box::new(a), Box::new(b))
             }
             utype::Value::Pair(a, b) => {
-                let ra = rtype::Value::refinement_template(ctx, a, used_pvar);
-                let x = utils::mk_fresh_name("x", &ctx.vars());
+                let v_fst = format!("{}_fst", var_name_hint);
+                let v_snd = format!("{}_snd", var_name_hint);
+                let ra = rtype::Value::refinement_template(ctx, a, used_pvar, &v_fst);
+                let x = utils::mk_fresh_name(&v_fst, &ctx.vars());
                 ctx.push(x.clone(), ra.clone());
-                let rb = rtype::Value::refinement_template(ctx, b, used_pvar);
+                let rb = rtype::Value::refinement_template(ctx, b, used_pvar, &v_snd);
                 ctx.pop();
                 rtype::Value::Pair(x, Box::new(ra), Box::new(rb))
             }
             utype::Value::U(c) => {
-                let rc = rtype::Computation::refinement_template(ctx, c, used_pvar);
+                let rc = rtype::Computation::refinement_template(ctx, c, used_pvar, var_name_hint);
                 rtype::Value::U(Box::new(rc))
             }
         }
@@ -73,18 +86,21 @@ impl rtype::Computation {
         ctx: &mut Context<rtype::Value>,
         ut: &utype::Computation,
         used_pvar: &mut Context<Vec<utype::Value>>,
+        var_name_hint: &str,
     ) -> rtype::Computation {
         match ut {
             utype::Computation::Var(_) => panic!("refining type variables is not allowed"),
             utype::Computation::F(a) => {
-                let ra = rtype::Value::refinement_template(ctx, a, used_pvar);
+                let ra = rtype::Value::refinement_template(ctx, a, used_pvar, var_name_hint);
                 rtype::Computation::F(Box::new(ra))
             }
             utype::Computation::Function(a, c) => {
-                let ra = rtype::Value::refinement_template(ctx, a, used_pvar);
-                let x = utils::mk_fresh_name("x", &ctx.vars());
+                let v_arg = format!("{}_arg", var_name_hint);
+                let v_body = format!("{}_body", var_name_hint);
+                let ra = rtype::Value::refinement_template(ctx, a, used_pvar, &v_arg);
+                let x = utils::mk_fresh_name(&v_arg, &ctx.vars());
                 ctx.push(x.clone(), ra.clone());
-                let rc = rtype::Computation::refinement_template(ctx, c, used_pvar);
+                let rc = rtype::Computation::refinement_template(ctx, c, used_pvar, &v_body);
                 ctx.pop();
                 rtype::Computation::Function(x, Box::new(ra), Box::new(rc))
             }
@@ -131,11 +147,12 @@ pub fn value(
             let (mut cv, tv) = value(ctx, v, used_pvar);
             let (cw, tw) = value(ctx, w, used_pvar);
             cv.extend(cw);
-            let x = utils::mk_fresh_name("x", &ctx.vars());
+            let x = utils::mk_fresh_name("pair_fst", &ctx.vars());
             match Term::from_underlying_value(v) {
                 Ok(v) => {
                     ctx.push(x.clone(), tv.clone());
-                    let rtw = rtype::Value::refinement_template(ctx, &tw.erase(), used_pvar);
+                    let rtw =
+                        rtype::Value::refinement_template(ctx, &tw.erase(), used_pvar, "pair_snd");
                     ctx.pop();
                     let csub = rtype::Value::subtype(
                         ctx,
@@ -150,12 +167,12 @@ pub fn value(
         }
         term::Value::Inl(v, b) => {
             let (cv, tv) = value(ctx, v, used_pvar);
-            let tb = rtype::Value::refinement_template(ctx, b, used_pvar);
+            let tb = rtype::Value::refinement_template(ctx, b, used_pvar, "sum_r");
             (cv, rtype::Value::Sum(Box::new(tv), Box::new(tb)))
         }
         term::Value::Inr(v, a) => {
             let (cv, tv) = value(ctx, v, used_pvar);
-            let ta = rtype::Value::refinement_template(ctx, a, used_pvar);
+            let ta = rtype::Value::refinement_template(ctx, a, used_pvar, "sum_l");
             (cv, rtype::Value::Sum(Box::new(ta), Box::new(tv)))
         }
         term::Value::Thunk(m) => {
@@ -182,7 +199,12 @@ pub fn computation(
                     ctx.push(x, a);
                     let (cn, tn) = computation(ctx, n, used_pvar);
                     let (x, a) = ctx.pop().unwrap();
-                    let ty = rtype::Computation::refinement_template(ctx, &tn.erase(), used_pvar);
+                    let ty = rtype::Computation::refinement_template(
+                        ctx,
+                        &tn.erase(),
+                        used_pvar,
+                        "seq_comp_result",
+                    );
                     ctx.push(x, a);
                     let csub = rtype::Computation::subtype(ctx, &tn, &ty);
                     ctx.pop();
@@ -210,7 +232,7 @@ pub fn computation(
             }
         }
         term::Computation::Lambda((x, a), m) => {
-            let ra = rtype::Value::refinement_template(ctx, a, used_pvar);
+            let ra = rtype::Value::refinement_template(ctx, a, used_pvar, "lambda_arg_var");
             ctx.push(x, ra);
             let (cm, tm) = computation(ctx, m, used_pvar);
             let (x, ra) = ctx.pop().unwrap();
@@ -244,7 +266,12 @@ pub fn computation(
                     cv.extend(cm);
                     let tmpvar = utils::mk_fresh_name("tmp", &ctx.vars());
                     ctx.push(tmpvar.clone(), tv);
-                    let rtm = rtype::Computation::refinement_template(ctx, &tm.erase(), used_pvar);
+                    let rtm = rtype::Computation::refinement_template(
+                        ctx,
+                        &tm.erase(),
+                        used_pvar,
+                        "pm_result",
+                    );
                     ctx.pop();
                     ctx.push(x.clone(), a);
                     ctx.push(y.clone(), b);
@@ -291,7 +318,12 @@ pub fn computation(
                     cv.extend(cn);
                     let tmpvar = utils::mk_fresh_name("tmp", &ctx.vars());
                     ctx.push(tmpvar.clone(), tv);
-                    let ty = rtype::Computation::refinement_template(ctx, &tm.erase(), used_pvar);
+                    let ty = rtype::Computation::refinement_template(
+                        ctx,
+                        &tm.erase(),
+                        used_pvar,
+                        "case_result",
+                    );
                     ctx.pop();
                     ctx.push(x.clone(), a);
                     cv.extend(rtype::Computation::subtype(
@@ -328,7 +360,7 @@ pub fn computation(
             }
         }
         term::Computation::Fix(x, m, c) => {
-            let rc = rtype::Computation::refinement_template(ctx, c, used_pvar);
+            let rc = rtype::Computation::refinement_template(ctx, c, used_pvar, "fix_var");
             ctx.push(x, rtype::Value::U(Box::new(rc.clone())));
             let (mut cm, tm) = computation(ctx, m, used_pvar);
             cm.extend(rtype::Computation::subtype(ctx, &tm, &rc));
@@ -340,7 +372,7 @@ pub fn computation(
             match tv {
                 rtype::Value::Empty => (
                     cv,
-                    rtype::Computation::refinement_template(ctx, c, used_pvar),
+                    rtype::Computation::refinement_template(ctx, c, used_pvar, "explode_result"),
                 ),
                 _ => panic!("type error in explode"),
             }
