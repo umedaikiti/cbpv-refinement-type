@@ -19,5 +19,21 @@ module.exports = {
     new WasmPackPlugin({
       crateDirectory: path.join(__dirname, "../")
     })
-  ]
+  ],
+  module: {
+    rules: [
+      {
+        test: /\.css/,
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              url: false
+            }
+          }
+        ],
+      }
+    ]
+  }
 };

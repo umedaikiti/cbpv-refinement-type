@@ -1,3 +1,5 @@
+import "./style.css";
+
 import("../pkg/").then(js => {
 //	js.greet("test");
 	const examples = require("./examples.json");
