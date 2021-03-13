@@ -34,13 +34,10 @@ import("../pkg/").then(js => {
 		} else if(ast.Binder) {
 			let li = document.createElement("li");
 			let name_type = document.createElement("span");
-			//name_type.appendChild(document.createTextNode("[" + ast.Binder.name + " : " + ast.Binder.type + "]"));
-			name_type.appendChild(document.createTextNode("[" + ast.Binder.name + "]"));
+			name_type.appendChild(document.createTextNode("[" + ast.Binder.name + " : " + ast.Binder.type + "]"));
 			li.appendChild(name_type);
 			let children = document.createElement("ul");
-			ast.Binder.children.forEach((child) => {
-				children.appendChild(create_ast_list(child));
-			});
+			children.appendChild(create_ast_list(ast.Binder.child));
 			li.appendChild(children);
 			return li;
 		}

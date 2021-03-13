@@ -40,8 +40,8 @@ enum AST {
     },
     Binder {
         name: String,
-        children: Vec<AST>,
-        //r#type: String,
+        child: Box<AST>,
+        r#type: String,
     },
 }
 
@@ -91,13 +91,14 @@ fn computation_to_ast(m: &infer_debug::Computation) -> AST {
             children: vec![value_to_ast(v)],
             r#type: m.ty.to_string(),
         },
-        infer_debug::ComputationTerm::SeqComp(n1, (x, _), n2) => AST::Term {
+        infer_debug::ComputationTerm::SeqComp(n1, (x, a), n2) => AST::Term {
             name: "SeqComp".to_string(),
             children: vec![
                 computation_to_ast(n1),
                 AST::Binder {
                     name: x.clone(),
-                    children: vec![computation_to_ast(n2)],
+                    child: Box::new(computation_to_ast(n2)),
+                    r#type: a.to_string(),
                 },
             ],
             r#type: m.ty.to_string(),
@@ -107,39 +108,44 @@ fn computation_to_ast(m: &infer_debug::Computation) -> AST {
             children: vec![computation_to_ast(n), value_to_ast(v)],
             r#type: m.ty.to_string(),
         },
-        infer_debug::ComputationTerm::Lambda((x, _), n) => AST::Term {
+        infer_debug::ComputationTerm::Lambda((x, a), n) => AST::Term {
             name: "Lambda".to_string(),
             children: vec![AST::Binder {
                 name: x.clone(),
-                children: vec![computation_to_ast(n)],
+                child: Box::new(computation_to_ast(n)),
+                r#type: a.to_string(),
             }],
             r#type: m.ty.to_string(),
         },
-        infer_debug::ComputationTerm::PatternMatch(v, (x, _), (y, _), n) => AST::Term {
+        infer_debug::ComputationTerm::PatternMatch(v, (x, a), (y, b), n) => AST::Term {
             name: "PatternMatch".to_string(),
             children: vec![
                 value_to_ast(v),
                 AST::Binder {
                     name: x.clone(),
-                    children: vec![AST::Binder {
+                    child: Box::new(AST::Binder {
                         name: y.clone(),
-                        children: vec![computation_to_ast(n)],
-                    }],
+                        child: Box::new(computation_to_ast(n)),
+                        r#type: b.to_string(),
+                    }),
+                    r#type: a.to_string(),
                 },
             ],
             r#type: m.ty.to_string(),
         },
-        infer_debug::ComputationTerm::Case(v, (x, _), n1, (y, _), n2) => AST::Term {
+        infer_debug::ComputationTerm::Case(v, (x, a), n1, (y, b), n2) => AST::Term {
             name: "Case".to_string(),
             children: vec![
                 value_to_ast(v),
                 AST::Binder {
                     name: x.clone(),
-                    children: vec![computation_to_ast(n1)],
+                    child: Box::new(computation_to_ast(n1)),
+                    r#type: a.to_string(),
                 },
                 AST::Binder {
                     name: y.clone(),
-                    children: vec![computation_to_ast(n2)],
+                    child: Box::new(computation_to_ast(n2)),
+                    r#type: b.to_string(),
                 },
             ],
             r#type: m.ty.to_string(),
@@ -149,11 +155,12 @@ fn computation_to_ast(m: &infer_debug::Computation) -> AST {
             children: vec![value_to_ast(v)],
             r#type: m.ty.to_string(),
         },
-        infer_debug::ComputationTerm::Fix(x, n, _) => AST::Term {
+        infer_debug::ComputationTerm::Fix(x, n, c) => AST::Term {
             name: "Fix".to_string(),
             children: vec![AST::Binder {
                 name: x.clone(),
-                children: vec![computation_to_ast(n)],
+                child: Box::new(computation_to_ast(n)),
+                r#type: lib::refinement::r#type::Value::U(Box::new(c.clone())).to_string(),
             }],
             r#type: m.ty.to_string(),
         },

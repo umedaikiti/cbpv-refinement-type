@@ -17,8 +17,8 @@ pub enum ValueTerm {
     Unit,
     Int(i64),
     Pair(Box<Value>, Box<Value>),
-    Inr(Box<Value>, utype::Value),
-    Inl(Box<Value>, utype::Value),
+    Inr(Box<Value>, rtype::Value),
+    Inl(Box<Value>, rtype::Value),
     Thunk(Box<Computation>),
 }
 
@@ -31,25 +31,25 @@ pub struct Computation {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ComputationTerm {
     Return(Box<Value>),
-    SeqComp(Box<Computation>, (String, utype::Value), Box<Computation>),
-    Lambda((String, utype::Value), Box<Computation>),
+    SeqComp(Box<Computation>, (String, rtype::Value), Box<Computation>),
+    Lambda((String, rtype::Value), Box<Computation>),
     App(Box<Computation>, Box<Value>),
     PatternMatch(
         Box<Value>,
-        (String, utype::Value),
-        (String, utype::Value),
+        (String, rtype::Value),
+        (String, rtype::Value),
         Box<Computation>,
     ),
     Case(
         Box<Value>,
-        (String, utype::Value),
+        (String, rtype::Value),
         Box<Computation>,
-        (String, utype::Value),
+        (String, rtype::Value),
         Box<Computation>,
     ),
     Force(Box<Value>),
-    Fix(String, Box<Computation>, utype::Computation),
-    Explode(Box<Value>, utype::Computation),
+    Fix(String, Box<Computation>, rtype::Computation),
+    Explode(Box<Value>, rtype::Computation),
     Fail,
     Add,
     Leq,
@@ -161,11 +161,11 @@ pub fn value(
         term::Value::Inl(v, b) => {
             let (cv, tv) = value(ctx, v, used_pvar);
             let tb = rtype::Value::refinement_template(ctx, b, used_pvar, "sum_r");
-            let ty = rtype::Value::Sum(Box::new(tv.ty.clone()), Box::new(tb));
+            let ty = rtype::Value::Sum(Box::new(tv.ty.clone()), Box::new(tb.clone()));
             (
                 cv,
                 Value {
-                    term: ValueTerm::Inl(Box::new(tv), b.clone()),
+                    term: ValueTerm::Inl(Box::new(tv), tb),
                     ty: ty,
                 },
             )
@@ -173,11 +173,11 @@ pub fn value(
         term::Value::Inr(v, a) => {
             let (cv, tv) = value(ctx, v, used_pvar);
             let ta = rtype::Value::refinement_template(ctx, a, used_pvar, "sum_l");
-            let ty = rtype::Value::Sum(Box::new(ta), Box::new(tv.ty.clone()));
+            let ty = rtype::Value::Sum(Box::new(ta.clone()), Box::new(tv.ty.clone()));
             (
                 cv,
                 Value {
-                    term: ValueTerm::Inr(Box::new(tv), a.clone()),
+                    term: ValueTerm::Inr(Box::new(tv), ta),
                     ty: ty,
                 },
             )
@@ -212,7 +212,7 @@ pub fn computation(
                 },
             )
         }
-        term::Computation::SeqComp(m, (x, x_ty), n) => {
+        term::Computation::SeqComp(m, (x, _), n) => {
             let (mut cm, tm) = computation(ctx, m, used_pvar);
             match tm.ty.clone() {
                 rtype::Computation::F(a) => {
@@ -228,17 +228,13 @@ pub fn computation(
                     );
                     ctx.push(x, a);
                     let csub = rtype::Computation::subtype(ctx, &tn.ty, &ty);
-                    let (x, _) = ctx.pop().unwrap();
+                    let (x, a) = ctx.pop().unwrap();
                     cm.extend(cn);
                     cm.extend(csub);
                     (
                         cm,
                         Computation {
-                            term: ComputationTerm::SeqComp(
-                                Box::new(tm),
-                                (x, x_ty.clone()),
-                                Box::new(tn),
-                            ),
+                            term: ComputationTerm::SeqComp(Box::new(tm), (x, a), Box::new(tn)),
                             ty: ty,
                         },
                     )
@@ -273,11 +269,15 @@ pub fn computation(
             ctx.push(x, ra);
             let (cm, tm) = computation(ctx, m, used_pvar);
             let (x, ra) = ctx.pop().unwrap();
-            let ty = rtype::Computation::Function(x.clone(), Box::new(ra), Box::new(tm.ty.clone()));
+            let ty = rtype::Computation::Function(
+                x.clone(),
+                Box::new(ra.clone()),
+                Box::new(tm.ty.clone()),
+            );
             (
                 cm,
                 Computation {
-                    term: ComputationTerm::Lambda((x, a.clone()), Box::new(tm)),
+                    term: ComputationTerm::Lambda((x, ra), Box::new(tm)),
                     ty: ty,
                 },
             )
@@ -295,7 +295,7 @@ pub fn computation(
                 _ => panic!("type error in force"),
             }
         }
-        term::Computation::PatternMatch(v, (x, x_ty), (y, y_ty), m) => {
+        term::Computation::PatternMatch(v, (x, _), (y, _), m) => {
             let (mut cv, tv) = value(ctx, v, used_pvar);
             match &tv.ty {
                 rtype::Value::Pair(x0, a, b) => {
@@ -334,8 +334,8 @@ pub fn computation(
                             .collect(),
                         ),
                     );
-                    let (y, _) = ctx.pop().unwrap();
-                    let (x, _) = ctx.pop().unwrap();
+                    let (y, b) = ctx.pop().unwrap();
+                    let (x, a) = ctx.pop().unwrap();
                     cv.extend(csub);
                     let term_v = match Term::from_underlying_value(v) {
                         Ok(v) => v,
@@ -346,8 +346,8 @@ pub fn computation(
                         Computation {
                             term: ComputationTerm::PatternMatch(
                                 Box::new(tv),
-                                (x, x_ty.clone()),
-                                (y, y_ty.clone()),
+                                (x, a),
+                                (y, b),
                                 Box::new(tm),
                             ),
                             ty: rtm.subst_term(&vec![(tmpvar, term_v)].into_iter().collect()),
@@ -357,7 +357,7 @@ pub fn computation(
                 _ => panic!("type error in pattern match"),
             }
         }
-        term::Computation::Case(v, (x, x_ty), m, (y, y_ty), n) => {
+        term::Computation::Case(v, (x, _), m, (y, _), n) => {
             let (mut cv, tv) = value(ctx, v, used_pvar);
             match &tv.ty {
                 rtype::Value::Sum(a, b) => {
@@ -390,7 +390,7 @@ pub fn computation(
                                 .collect(),
                         ),
                     ));
-                    let (x, _) = ctx.pop().unwrap();
+                    let (x, a) = ctx.pop().unwrap();
                     ctx.push(y.clone(), b);
                     cv.extend(rtype::Computation::subtype(
                         ctx,
@@ -401,7 +401,7 @@ pub fn computation(
                                 .collect(),
                         ),
                     ));
-                    let (y, _) = ctx.pop().unwrap();
+                    let (y, b) = ctx.pop().unwrap();
                     let term_v = match Term::from_underlying_value(v) {
                         Ok(v) => v,
                         Err(_) => Term::Var(tmpvar.clone()), // dummy
@@ -411,9 +411,9 @@ pub fn computation(
                         Computation {
                             term: ComputationTerm::Case(
                                 Box::new(tv),
-                                (x, x_ty.clone()),
+                                (x, a),
                                 Box::new(tm),
-                                (y, y_ty.clone()),
+                                (y, b),
                                 Box::new(tn),
                             ),
                             ty: ty.subst_term(&vec![(tmpvar, term_v)].into_iter().collect()),
@@ -432,24 +432,20 @@ pub fn computation(
             (
                 cm,
                 Computation {
-                    term: ComputationTerm::Fix(x, Box::new(tm), c.clone()),
+                    term: ComputationTerm::Fix(x, Box::new(tm), rc.clone()),
                     ty: rc,
                 },
             )
         }
         term::Computation::Explode(v, c) => {
             let (cv, tv) = value(ctx, v, used_pvar);
+            let rc = rtype::Computation::refinement_template(ctx, c, used_pvar, "explode_result");
             match &tv.ty {
                 rtype::Value::Empty => (
                     cv,
                     Computation {
-                        term: ComputationTerm::Explode(Box::new(tv), c.clone()),
-                        ty: rtype::Computation::refinement_template(
-                            ctx,
-                            c,
-                            used_pvar,
-                            "explode_result",
-                        ),
+                        term: ComputationTerm::Explode(Box::new(tv), rc.clone()),
+                        ty: rc,
                     },
                 ),
                 _ => panic!("type error in explode"),
