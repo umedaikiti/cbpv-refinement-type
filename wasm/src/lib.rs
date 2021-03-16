@@ -203,7 +203,12 @@ enum Strategy {
     CBN,
 }
 
-fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<(AST, String), String> {
+fn to_smtlib(
+    s: &str,
+    log: &mut String,
+    ev: Strategy,
+    simplify: bool,
+) -> Result<(AST, String), String> {
     lib::logic::Formula::reset_pname_counter();
     let write_error_handler = |e| Err(format!("log error: {}", e));
     let (_, t) = nom::combinator::all_consuming(lambda::parser::term)(s)
@@ -221,9 +226,14 @@ fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<(AST, String), S
         }
     };
     writeln!(log, "{:#?}", term).or_else(write_error_handler)?;
-    let term = term.simplify(&HashSet::new());
-    writeln!(log, "simplified term").or_else(write_error_handler)?;
-    writeln!(log, "{:#?}", term).or_else(write_error_handler)?;
+    let term = if simplify {
+        let term = term.simplify(&HashSet::new());
+        writeln!(log, "simplified term").or_else(write_error_handler)?;
+        writeln!(log, "{:#?}", term).or_else(write_error_handler)?;
+        term
+    } else {
+        term
+    };
     let (m, ty) = term.infer(&mut Context::new())?;
     let term = term.subst_type(&m);
     writeln!(log, "HM type inference").or_else(write_error_handler)?;
@@ -249,9 +259,9 @@ fn to_smtlib(s: &str, log: &mut String, ev: Strategy) -> Result<(AST, String), S
 }
 
 #[wasm_bindgen]
-pub fn to_smtlib_cbv(s: &str) -> JsValue {
+pub fn to_smtlib_cbv(s: &str, simplify: bool) -> JsValue {
     let mut l = String::new();
-    let result = to_smtlib(s, &mut l, Strategy::CBV);
+    let result = to_smtlib(s, &mut l, Strategy::CBV, simplify);
     log(&l);
     let data = match result {
         Ok((ast, smtlib)) => Data {
@@ -270,9 +280,9 @@ pub fn to_smtlib_cbv(s: &str) -> JsValue {
 }
 
 #[wasm_bindgen]
-pub fn to_smtlib_cbn(s: &str) -> JsValue {
+pub fn to_smtlib_cbn(s: &str, simplify: bool) -> JsValue {
     let mut l = String::new();
-    let result = to_smtlib(s, &mut l, Strategy::CBN);
+    let result = to_smtlib(s, &mut l, Strategy::CBN, simplify);
     log(&l);
     let data = match result {
         Ok((ast, smtlib)) => Data {

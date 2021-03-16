@@ -47,7 +47,8 @@ import("../pkg/").then(js => {
 	}
 	document.getElementById("cbv-button").addEventListener("click", function() {
 		let input = document.getElementById("input");
-		let result = js.to_smtlib_cbv(input.value);
+		let simplify = document.getElementById("simplify").checked;
+		let result = js.to_smtlib_cbv(input.value, simplify);
 		let output = document.getElementById("output");
 		if (result.smtlib === undefined) {
 			output.value = "";
@@ -67,7 +68,8 @@ import("../pkg/").then(js => {
 	});
 	document.getElementById("cbn-button").addEventListener("click", function() {
 		let input = document.getElementById("input");
-		let result = js.to_smtlib_cbn(input.value);
+		let simplify = document.getElementById("simplify").checked;
+		let result = js.to_smtlib_cbn(input.value, simplify);
 		let output = document.getElementById("output");
 		if (result.smtlib === undefined) {
 			output.value = "";
