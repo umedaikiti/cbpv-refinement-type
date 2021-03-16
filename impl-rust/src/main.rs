@@ -31,11 +31,11 @@ fn main() {
         println!("{:?}", t);
     }
     let inference_tests = [
-        "case leq 1 2 in inl x -> () | inr x -> fail",
-        "fun x -> case leq x (add x 1) in inl y -> x | inr y -> add x 1",
-        "fun x -> add x 1",
-        "let rec f x = add x 1 in f",
-        "let rec f x = case leq 0 x in inl z -> add x (f (add x (-1))) | inr z -> 0 in case leq 0 (f ?) in inl y -> () | inr y -> fail",
+        "case (<=) 1 2 in inl x -> () | inr x -> fail",
+        "fun x -> case (<=) x ((+) x 1) in inl y -> x | inr y -> (+) x 1",
+        "fun x -> (+) x 1",
+        "let rec f x = (+) x 1 in f",
+        "let rec f x = case (<=) 0 x in inl z -> (+) x (f ((+) x (-1))) | inr z -> 0 in case (<=) 0 (f ?) in inl y -> () | inr y -> fail",
     ];
     for s in inference_tests.iter() {
         println!("input");

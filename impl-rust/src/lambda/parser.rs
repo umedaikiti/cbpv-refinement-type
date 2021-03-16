@@ -6,7 +6,7 @@ use nom::{
 
 fn ident(s: &str) -> IResult<&str, String> {
     let reserved = [
-        "with", "in", "match", "fun", "case", "inl", "inr", "add", "leq", "fail", "let", "rec",
+        "with", "in", "match", "fun", "case", "inl", "inr", "fail", "let", "rec",
     ];
     let (s, id) = verify(
         recognize(nom::sequence::pair(
@@ -157,12 +157,12 @@ fn fail(s: &str) -> IResult<&str, Term> {
 }
 
 fn add(s: &str) -> IResult<&str, Term> {
-    let (s, _) = tag("add")(s)?;
+    let (s, _) = tag("(+)")(s)?;
     Ok((s, Term::Add))
 }
 
 fn leq(s: &str) -> IResult<&str, Term> {
-    let (s, _) = tag("leq")(s)?;
+    let (s, _) = tag("(<=)")(s)?;
     Ok((s, Term::Leq))
 }
 
