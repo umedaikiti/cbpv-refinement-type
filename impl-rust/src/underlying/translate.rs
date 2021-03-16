@@ -111,7 +111,7 @@ fn cbv_of_operation(
     for (x, _) in renamed_args.iter() {
         term = Computation::App(Box::new(term), Box::new(Value::Var(x.clone())));
     }
-    for (x, a) in renamed_args.into_iter() {
+    for (x, a) in renamed_args.into_iter().rev() {
         term = Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Lambda(
             (x, a),
             Box::new(term),
