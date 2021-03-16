@@ -94,6 +94,32 @@ impl Type {
     }
 }
 
+fn cbv_of_operation(
+    args: Vec<(&str, r#type::Value)>,
+    op: Computation,
+    rctx: &mut RenameContext,
+) -> Computation {
+    let mut renamed_args = Vec::new();
+    for (x, a) in args.into_iter() {
+        let x = rctx.add(x);
+        renamed_args.push((x, a));
+    }
+    for (x, _) in renamed_args.iter().rev() {
+        rctx.remove(x);
+    }
+    let mut term = op;
+    for (x, _) in renamed_args.iter() {
+        term = Computation::App(Box::new(term), Box::new(Value::Var(x.clone())));
+    }
+    for (x, a) in renamed_args.into_iter() {
+        term = Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Lambda(
+            (x, a),
+            Box::new(term),
+        )))));
+    }
+    term
+}
+
 fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
     match term {
         Term::Var(x) => Computation::Return(Box::new(Value::Var(rctx.rename(x)))),
@@ -285,44 +311,60 @@ fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
             )))))
         }
         Term::Fail => Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Fail)))),
-        Term::Add => {
-            let x = rctx.add("add_arg_1");
-            let y = rctx.add("add_arg_2");
-            rctx.remove(&y);
-            rctx.remove(&x);
-            let term = Computation::Add;
-            let term = Computation::App(Box::new(term), Box::new(Value::Var(x.clone())));
-            let term = Computation::App(Box::new(term), Box::new(Value::Var(y.clone())));
-            let term = Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Lambda(
-                (y, r#type::Value::Int),
-                Box::new(term),
-            )))));
-            let term = Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Lambda(
-                (x, r#type::Value::Int),
-                Box::new(term),
-            )))));
-            term
-        }
-        Term::Leq => {
-            let x = rctx.add("leq_arg_1");
-            let y = rctx.add("leq_arg_2");
-            rctx.remove(&y);
-            rctx.remove(&x);
-            let term = Computation::Leq;
-            let term = Computation::App(Box::new(term), Box::new(Value::Var(x.clone())));
-            let term = Computation::App(Box::new(term), Box::new(Value::Var(y.clone())));
-            let term = Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Lambda(
-                (y, r#type::Value::Int),
-                Box::new(term),
-            )))));
-            let term = Computation::Return(Box::new(Value::Thunk(Box::new(Computation::Lambda(
-                (x, r#type::Value::Int),
-                Box::new(term),
-            )))));
-            term
-        }
+        Term::Add => cbv_of_operation(
+            vec![
+                ("add_arg_1", r#type::Value::Int),
+                ("add_arg_2", r#type::Value::Int),
+            ],
+            Computation::Add,
+            rctx,
+        ),
+        Term::Leq => cbv_of_operation(
+            vec![
+                ("leq_arg_1", r#type::Value::Int),
+                ("leq_arg_2", r#type::Value::Int),
+            ],
+            Computation::Leq,
+            rctx,
+        ),
         Term::NDInt => Computation::NDInt,
     }
+}
+
+fn cbn_of_operation(
+    args: Vec<(&str, r#type::Value)>,
+    op: Computation,
+    rctx: &mut RenameContext,
+) -> Computation {
+    let mut renamed_args = Vec::new();
+    for (x, a) in args.into_iter() {
+        let x_uf = rctx.add(&x);
+        let x_forced = rctx.add(&format!("{}_forced", x));
+        renamed_args.push((
+            (
+                x_uf,
+                r#type::Value::U(Box::new(r#type::Computation::F(Box::new(a.clone())))),
+            ),
+            (x_forced, a),
+        ));
+    }
+    for ((x_uf, _), (x_forced, _)) in renamed_args.iter().rev() {
+        rctx.remove(x_forced);
+        rctx.remove(x_uf);
+    }
+    let mut term = op;
+    for (_, (x_forced, _)) in renamed_args.iter() {
+        term = Computation::App(Box::new(term), Box::new(Value::Var(x_forced.clone())));
+    }
+    for ((x_uf, a_uf), (x_forced, a)) in renamed_args.into_iter().rev() {
+        term = Computation::SeqComp(
+            Box::new(Computation::Force(Box::new(Value::Var(x_uf.clone())))),
+            (x_forced, a),
+            Box::new(term),
+        );
+        term = Computation::Lambda((x_uf, a_uf), Box::new(term));
+    }
+    term
 }
 
 fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
@@ -449,118 +491,27 @@ fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
                 r#type::Computation::Var(r#type::Computation::mk_fresh_name()),
             )
         }
-        Term::Fail => {
-            let x = rctx.add("fail_arg");
-            let y = rctx.add("fail_arg_forced");
-            rctx.remove(&y);
-            rctx.remove(&x);
-            Computation::Lambda(
-                (
-                    x.clone(),
-                    r#type::Value::U(Box::new(r#type::Computation::F(Box::new(
-                        r#type::Value::Unit,
-                    )))),
-                ),
-                Box::new(Computation::SeqComp(
-                    Box::new(Computation::Force(Box::new(Value::Var(x)))),
-                    (y.clone(), r#type::Value::Unit),
-                    Box::new(Computation::App(
-                        Box::new(Computation::Fail),
-                        Box::new(Value::Var(y)),
-                    )),
-                )),
-            )
-        }
-        Term::Add => {
-            let xc = rctx.add("add_arg_1");
-            let yc = rctx.add("add_arg_2");
-            let xv = rctx.add("add_arg_1_forced");
-            let yv = rctx.add("add_arg_2_forced");
-            rctx.remove(&yv);
-            rctx.remove(&xv);
-            rctx.remove(&yc);
-            rctx.remove(&xc);
-            let term = Computation::Add;
-            let term = Computation::App(Box::new(term), Box::new(Value::Var(xv.clone())));
-            let term = Computation::App(Box::new(term), Box::new(Value::Var(yv.clone())));
-            let term = Computation::SeqComp(
-                Box::new(Computation::Force(Box::new(Value::Var(yc.clone())))),
-                (yv, r#type::Value::Int),
-                Box::new(term),
-            );
-            let term = Computation::Lambda(
-                (
-                    yc,
-                    r#type::Value::U(Box::new(r#type::Computation::F(Box::new(
-                        r#type::Value::Int,
-                    )))),
-                ),
-                Box::new(term),
-            );
-            let term = Computation::SeqComp(
-                Box::new(Computation::Force(Box::new(Value::Var(xc.clone())))),
-                (xv, r#type::Value::Int),
-                Box::new(term),
-            );
-            let term = Computation::Lambda(
-                (
-                    xc,
-                    r#type::Value::U(Box::new(r#type::Computation::F(Box::new(
-                        r#type::Value::Int,
-                    )))),
-                ),
-                Box::new(term),
-            );
-            term
-        }
-        Term::Leq => {
-            let xc = rctx.add("leq_arg_1");
-            let yc = rctx.add("leq_arg_2");
-            let xv = rctx.add("leq_arg_1_forced");
-            let yv = rctx.add("leq_arg_2_forced");
-            let dummy = rctx.add("dummy");
-            rctx.remove(&dummy);
-            rctx.remove(&yv);
-            rctx.remove(&xv);
-            rctx.remove(&yc);
-            rctx.remove(&xc);
-            let term = Computation::App(
-                Box::new(Computation::App(
-                    Box::new(Computation::Leq),
-                    Box::new(Value::Var(xv.clone())),
-                )),
-                Box::new(Value::Var(yv.clone())),
-            );
-            let term = Computation::SeqComp(
-                Box::new(Computation::Force(Box::new(Value::Var(yc.clone())))),
-                (yv, r#type::Value::Int),
-                Box::new(term),
-            );
-            let term = Computation::Lambda(
-                (
-                    yc,
-                    r#type::Value::U(Box::new(r#type::Computation::F(Box::new(
-                        r#type::Value::Int,
-                    )))),
-                ),
-                Box::new(term),
-            );
-            let term = Computation::SeqComp(
-                Box::new(Computation::Force(Box::new(Value::Var(xc.clone())))),
-                (xv, r#type::Value::Int),
-                Box::new(term),
-            );
-            let term = Computation::Lambda(
-                (
-                    xc,
-                    r#type::Value::U(Box::new(r#type::Computation::F(Box::new(
-                        r#type::Value::Int,
-                    )))),
-                ),
-                Box::new(term),
-            );
-            term
-        }
+        Term::Fail => cbn_of_operation(
+            vec![("fail_arg", r#type::Value::Unit)],
+            Computation::Fail,
+            rctx,
+        ),
+        Term::Add => cbn_of_operation(
+            vec![
+                ("add_arg_1", r#type::Value::Int),
+                ("add_arg_2", r#type::Value::Int),
+            ],
+            Computation::Add,
+            rctx,
+        ),
+        Term::Leq => cbn_of_operation(
+            vec![
+                ("leq_arg_1", r#type::Value::Int),
+                ("leq_arg_2", r#type::Value::Int),
+            ],
+            Computation::Leq,
+            rctx,
+        ),
         Term::NDInt => Computation::NDInt,
     }
 }
