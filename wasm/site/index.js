@@ -45,46 +45,37 @@ import("../pkg/").then(js => {
 		}
 		console.log("error");
 	}
-	document.getElementById("cbv-button").addEventListener("click", function() {
-		let input = document.getElementById("input");
-		let simplify = document.getElementById("simplify").checked;
-		let result = js.to_smtlib_cbv(input.value, simplify);
+	function show_result(result) {
 		let output = document.getElementById("output");
-		if (result.smtlib === undefined) {
+		if (result.smtlib === undefined || result.smtlib === null) {
 			output.value = "";
+			document.getElementById("download").removeAttribute("href");
 		} else {
 			output.value = result.smtlib;
+			let blob = new Blob([ result.smtlib ], { "type" : "text/plain" });;
+			document.getElementById("download").href = window.URL.createObjectURL(blob);
 		}
-		if (result.ast !== undefined) {
-			let ast_div = document.getElementById("ast");
-			while(ast_div.firstChild) {
-				ast_div.removeChild(ast_div.firstChild);
-			}
+		let ast_div = document.getElementById("ast");
+		while(ast_div.firstChild) {
+			ast_div.removeChild(ast_div.firstChild);
+		}
+		if (result.ast !== undefined & result.ast !== null) {
 			let ast_list = document.createElement("ul");
 			ast_list.setAttribute("style", "margin: 0; padding: 0;");
 			ast_list.appendChild(create_ast_list(result.ast));
 			ast_div.appendChild(ast_list);
 		}
+	}
+	document.getElementById("cbv-button").addEventListener("click", function() {
+		let input = document.getElementById("input");
+		let simplify = document.getElementById("simplify").checked;
+		let result = js.to_smtlib_cbv(input.value, simplify);
+		show_result(result);
 	});
 	document.getElementById("cbn-button").addEventListener("click", function() {
 		let input = document.getElementById("input");
 		let simplify = document.getElementById("simplify").checked;
 		let result = js.to_smtlib_cbn(input.value, simplify);
-		let output = document.getElementById("output");
-		if (result.smtlib === undefined) {
-			output.value = "";
-		} else {
-			output.value = result.smtlib;
-		}
-		if (result.ast !== undefined) {
-			let ast_div = document.getElementById("ast");
-			while(ast_div.firstChild) {
-				ast_div.removeChild(ast_div.firstChild);
-			}
-			let ast_list = document.createElement("ul");
-			ast_list.setAttribute("style", "margin: 0; padding: 0;");
-			ast_list.appendChild(create_ast_list(result.ast));
-			ast_div.appendChild(ast_list);
-		}
+		show_result(result);
 	});
 });
