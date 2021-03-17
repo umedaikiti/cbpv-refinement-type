@@ -14,6 +14,10 @@ li {
   margin: 10px 0 10px 0;
 }
 
+a:not([href]) {
+  display: none;
+}
+
 /* Create the caret/arrow with a unicode, and style it */
 .caret::before {
   content: "\25B6";
