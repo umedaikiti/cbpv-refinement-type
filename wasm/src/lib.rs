@@ -5,9 +5,9 @@ use lib::context::Context;
 use lib::lambda;
 use lib::refinement::infer_debug;
 use lib::underlying;
+use log::{LevelFilter, Metadata, Record};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::fmt::Write;
 
 use wasm_bindgen::prelude::*;
 
@@ -18,17 +18,31 @@ extern "C" {
     fn log(s: &str);
 }
 
-#[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
+static CONSOLE_LOGGER: ConsoleLogger = ConsoleLogger;
+
+struct ConsoleLogger;
+
+impl log::Log for ConsoleLogger {
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= log::max_level()
+    }
+
+    fn log(&self, record: &Record) {
+        if self.enabled(record.metadata()) {
+            log(&format!("{} - {}", record.level(), record.args()));
+        }
+    }
+
+    fn flush(&self) {}
 }
 
 #[wasm_bindgen]
-pub fn parser(s: &str) -> String {
-    match nom::combinator::all_consuming(lambda::parser::term)(s) {
-        Ok((_, t)) => format!("{:?}", t),
-        Err(e) => format!("parse error: {}", e.to_string()),
-    }
+pub fn init() {
+    match log::set_logger(&CONSOLE_LOGGER) {
+        Ok(_) => (),
+        Err(e) => log(&e.to_string()),
+    };
+    log::set_max_level(LevelFilter::Trace);
 }
 
 #[derive(Serialize, Deserialize)]
@@ -203,53 +217,47 @@ enum Strategy {
     CBN,
 }
 
-fn to_smtlib(
-    s: &str,
-    log: &mut String,
-    ev: Strategy,
-    simplify: bool,
-) -> Result<(AST, String), String> {
+fn to_smtlib(s: &str, ev: Strategy, simplify: bool) -> Result<(AST, String), String> {
     lib::logic::Formula::reset_pname_counter();
-    let write_error_handler = |e| Err(format!("log error: {}", e));
     let (_, t) = nom::combinator::all_consuming(lambda::parser::term)(s)
         .or_else(|e| Err(format!("{}", e)))?;
-    writeln!(log, "parse result").or_else(write_error_handler)?;
-    writeln!(log, "{:#?}", t).or_else(write_error_handler)?;
+    log::debug!("parse result");
+    log::debug!("{:#?}", t);
     let (_, term) = match ev {
         Strategy::CBV => {
-            writeln!(log, "cbv translation").or_else(write_error_handler)?;
+            log::debug!("cbv translation");
             underlying::translate::cbv_of_lambda(&Context::new(), &t)
         }
         Strategy::CBN => {
-            writeln!(log, "cbn translation").or_else(write_error_handler)?;
+            log::debug!("cbn translation");
             underlying::translate::cbn_of_lambda(&Context::new(), &t)
         }
     };
-    writeln!(log, "{:#?}", term).or_else(write_error_handler)?;
+    log::debug!("{:#?}", term);
     let term = if simplify {
         let term = term.simplify(&HashSet::new());
-        writeln!(log, "simplified term").or_else(write_error_handler)?;
-        writeln!(log, "{:#?}", term).or_else(write_error_handler)?;
+        log::debug!("simplified term");
+        log::debug!("{:#?}", term);
         term
     } else {
         term
     };
     let (m, ty) = term.infer(&mut Context::new())?;
     let term = term.subst_type(&m);
-    writeln!(log, "HM type inference").or_else(write_error_handler)?;
-    writeln!(log, "{:?} : {}", term, ty.subst(&m)).or_else(write_error_handler)?;
+    log::debug!("HM type inference");
+    log::debug!("{:?} : {}", term, ty.subst(&m));
     if term.free_type_vars().is_empty() {
         let mut used_pvar = Context::new();
         let (c, t) = infer_debug::computation(&mut Context::new(), &term, &mut used_pvar);
-        writeln!(log, "raw constraints").or_else(write_error_handler)?;
+        log::debug!("raw constraints");
         for c in c.iter() {
-            writeln!(log, "{:?}", c).or_else(write_error_handler)?;
+            log::debug!("{:?}", c);
         }
         let (used_pvar, c) = lib::logic::simplify(used_pvar, c);
-        writeln!(log, "simplified constraints").or_else(write_error_handler)?;
-        writeln!(log, "{:?}", used_pvar).or_else(write_error_handler)?;
+        log::debug!("simplified constraints");
+        log::debug!("{:?}", used_pvar);
         for c in c.iter() {
-            writeln!(log, "{:?}", c).or_else(write_error_handler)?;
+            log::debug!("{:?}", c);
         }
         let smtlib = lib::logic::to_smtlib(&used_pvar, &c).ok_or("cannot encode to SMT LIB")?;
         Ok((computation_to_ast(&t), smtlib.to_string()))
@@ -260,9 +268,7 @@ fn to_smtlib(
 
 #[wasm_bindgen]
 pub fn to_smtlib_cbv(s: &str, simplify: bool) -> JsValue {
-    let mut l = String::new();
-    let result = to_smtlib(s, &mut l, Strategy::CBV, simplify);
-    log(&l);
+    let result = to_smtlib(s, Strategy::CBV, simplify);
     let data = match result {
         Ok((ast, smtlib)) => Data {
             ast: Some(ast),
@@ -281,9 +287,7 @@ pub fn to_smtlib_cbv(s: &str, simplify: bool) -> JsValue {
 
 #[wasm_bindgen]
 pub fn to_smtlib_cbn(s: &str, simplify: bool) -> JsValue {
-    let mut l = String::new();
-    let result = to_smtlib(s, &mut l, Strategy::CBN, simplify);
-    log(&l);
+    let result = to_smtlib(s, Strategy::CBN, simplify);
     let data = match result {
         Ok((ast, smtlib)) => Data {
             ast: Some(ast),

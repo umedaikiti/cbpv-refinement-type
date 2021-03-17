@@ -1,7 +1,7 @@
 import "./style.css";
 
 import("../pkg/").then(js => {
-//	js.greet("test");
+	js.init();
 	const examples = require("./examples.json");
 	let select = document.getElementById("examples");
 	Object.keys(examples).forEach(key => {

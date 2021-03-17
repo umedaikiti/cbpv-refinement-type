@@ -13,4 +13,5 @@ crate-type = ["cdylib"]
 nom = "6"
 serde = { version = "1.0", features = ["derive"] }
 wasm-bindgen = { version = ">=0.2.7", features = ["serde-serialize"] }
+log = { version = "0.4", features = ["release_max_level_warn"] }
 type-checker = { path = "../impl-rust" }
