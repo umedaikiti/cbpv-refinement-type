@@ -5,7 +5,7 @@ use lib::context::Context;
 use lib::lambda;
 use lib::refinement::infer_debug;
 use lib::underlying;
-use log::{LevelFilter, Metadata, Record};
+use log::{Level, LevelFilter, Metadata, Record};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -16,6 +16,14 @@ extern "C" {
     pub fn alert(s: &str);
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
+    #[wasm_bindgen(js_namespace = console)]
+    fn info(s: &str);
+    #[wasm_bindgen(js_namespace = console)]
+    fn debug(s: &str);
+    #[wasm_bindgen(js_namespace = console)]
+    fn error(s: &str);
+    #[wasm_bindgen(js_namespace = console)]
+    fn warn(s: &str);
 }
 
 static CONSOLE_LOGGER: ConsoleLogger = ConsoleLogger;
@@ -29,7 +37,13 @@ impl log::Log for ConsoleLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            log(&format!("{} - {}", record.level(), record.args()));
+            match record.level() {
+                Level::Error => error(&record.args().to_string()),
+                Level::Warn => warn(&record.args().to_string()),
+                Level::Info => info(&record.args().to_string()),
+                Level::Debug => log(&record.args().to_string()),
+                Level::Trace => debug(&record.args().to_string()),
+            }
         }
     }
 
@@ -43,6 +57,11 @@ pub fn init() {
         Err(e) => log(&e.to_string()),
     };
     log::set_max_level(LevelFilter::Trace);
+    //log::trace!("trace test");
+    //log::debug!("debug test");
+    //log::info!("info test");
+    //log::warn!("warn test");
+    //log::error!("error test");
 }
 
 #[derive(Serialize, Deserialize)]
