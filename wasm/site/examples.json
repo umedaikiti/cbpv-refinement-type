@@ -1,6 +1,6 @@
 {
-    "ex1" : "case (<=) 1 2 in inl x -> () | inr x -> fail",
-    "ex2" : "fun x -> case (<=) x ((+) x 1) in inl y -> x | inr y -> fail",
+    "ex1" : "case (<=) 1 2 of inl x -> () | inr x -> fail",
+    "ex2" : "fun x -> case (<=) x ((+) x 1) of inl y -> x | inr y -> fail",
     "ex3" : "fun x -> (+) x 1",
-    "ex4" : "let rec f x = case (<=) 0 x in inl z -> (+) x (f ((+) x (-1))) | inr z -> 0 in case (<=) 0 (f ?) in inl y -> () | inr y -> fail"
+    "ex4" : "let rec f x = case (<=) 0 x of inl z -> (+) x (f ((+) x (-1))) | inr z -> 0 in case (<=) 0 (f ?) of inl y -> () | inr y -> fail"
 }

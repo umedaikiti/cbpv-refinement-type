@@ -19,7 +19,7 @@ fn main() {
         "(fun x y -> (x, y)) () x",
         "inl () x",
         "inl inl ()",
-        "case inl () in inl x -> x | inr y -> y",
+        "case inl () of inl x -> x | inr y -> y",
         "match (x, y) with (x, y) -> x",
         "fail",
         "123",
@@ -31,11 +31,11 @@ fn main() {
         println!("{:?}", t);
     }
     let inference_tests = [
-        "case (<=) 1 2 in inl x -> () | inr x -> fail",
-        "fun x -> case (<=) x ((+) x 1) in inl y -> x | inr y -> (+) x 1",
+        "case (<=) 1 2 of inl x -> () | inr x -> fail",
+        "fun x -> case (<=) x ((+) x 1) of inl y -> x | inr y -> (+) x 1",
         "fun x -> (+) x 1",
         "let rec f x = (+) x 1 in f",
-        "let rec f x = case (<=) 0 x in inl z -> (+) x (f ((+) x (-1))) | inr z -> 0 in case (<=) 0 (f ?) in inl y -> () | inr y -> fail",
+        "let rec f x = case (<=) 0 x of inl z -> (+) x (f ((+) x (-1))) | inr z -> 0 in case (<=) 0 (f ?) of inl y -> () | inr y -> fail",
     ];
     for s in inference_tests.iter() {
         println!("input");

@@ -6,7 +6,7 @@ use nom::{
 
 fn ident(s: &str) -> IResult<&str, String> {
     let reserved = [
-        "with", "in", "match", "fun", "case", "inl", "inr", "fail", "let", "rec",
+        "with", "in", "match", "fun", "case", "of", "inl", "inr", "fail", "let", "rec",
     ];
     let (s, id) = verify(
         recognize(nom::sequence::pair(
@@ -105,7 +105,7 @@ fn case(s: &str) -> IResult<&str, Term> {
     let (s, _) = multispace1(s)?;
     let (s, t) = term(s)?;
     let (s, _) = multispace0(s)?;
-    let (s, _) = tag("in")(s)?;
+    let (s, _) = tag("of")(s)?;
     let (s, _) = multispace1(s)?;
     let (s, (idl, tl, idr, tr)) = alt((inr_inl, inl_inr))(s)?;
     Ok((
