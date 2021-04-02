@@ -1,7 +1,7 @@
 import "./style.css";
 
-import("../pkg/").then(js => {
-	js.init();
+import("../pkg/").then(wasm => {
+	wasm.init();
 	const examples = require("./examples.json");
 	let select = document.getElementById("examples");
 	Object.keys(examples).forEach(key => {
@@ -11,9 +11,9 @@ import("../pkg/").then(js => {
 		select.appendChild(example);
 	});
 	select.addEventListener("change", (event) => {
-		document.getElementById("input").value = examples[event.target.value];
+		(<HTMLInputElement>document.getElementById("input")).value = examples[(<HTMLInputElement>event.target).value];
 	});
-	function create_ast_list(ast) {
+	function create_ast_list(ast) : HTMLElement {
 		if(ast.Term) {
 			let li = document.createElement("li");
 			let name_type = document.createElement("span");
@@ -46,20 +46,20 @@ import("../pkg/").then(js => {
 		console.log("error");
 	}
 	function show_result(result) {
-		let output = document.getElementById("output");
+		let output = <HTMLInputElement>document.getElementById("output");
 		if (result.smtlib === undefined || result.smtlib === null) {
 			output.value = "";
 			document.getElementById("download").removeAttribute("href");
 		} else {
 			output.value = result.smtlib;
 			let blob = new Blob([ result.smtlib ], { "type" : "text/plain" });;
-			document.getElementById("download").href = window.URL.createObjectURL(blob);
+			(<HTMLAnchorElement>document.getElementById("download")).href = window.URL.createObjectURL(blob);
 		}
 		let ast_div = document.getElementById("ast");
 		while(ast_div.firstChild) {
 			ast_div.removeChild(ast_div.firstChild);
 		}
-		if (result.ast !== undefined & result.ast !== null) {
+		if (result.ast !== undefined && result.ast !== null) {
 			let ast_list = document.createElement("ul");
 			ast_list.setAttribute("style", "margin: 0; padding: 0;");
 			ast_list.appendChild(create_ast_list(result.ast));
@@ -67,15 +67,15 @@ import("../pkg/").then(js => {
 		}
 	}
 	document.getElementById("cbv-button").addEventListener("click", function() {
-		let input = document.getElementById("input");
-		let simplify = document.getElementById("simplify").checked;
-		let result = js.to_smtlib_cbv(input.value, simplify);
+		let input = <HTMLInputElement>document.getElementById("input");
+		let simplify = (<HTMLInputElement>document.getElementById("simplify")).checked;
+		let result = wasm.to_smtlib_cbv(input.value, simplify);
 		show_result(result);
 	});
 	document.getElementById("cbn-button").addEventListener("click", function() {
-		let input = document.getElementById("input");
-		let simplify = document.getElementById("simplify").checked;
-		let result = js.to_smtlib_cbn(input.value, simplify);
+		let input = <HTMLInputElement>document.getElementById("input");
+		let simplify = (<HTMLInputElement>document.getElementById("simplify")).checked;
+		let result = wasm.to_smtlib_cbn(input.value, simplify);
 		show_result(result);
 	});
 });

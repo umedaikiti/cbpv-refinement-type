@@ -4,13 +4,9 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 
 module.exports = {
-  entry: "./index.js",
-  output: {
-    path: path.resolve(__dirname, "dist"),
-    filename: "index.js",
-  },
+  entry: "./index.ts",
   resolve: {
-    extensions: ['.js', '.wasm', '.json'],
+    extensions: ['.js', '.ts', '.wasm', '.json'],
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -26,6 +22,10 @@ module.exports = {
   ],
   module: {
     rules: [
+      {
+        test: /\.ts$/,
+        use: 'ts-loader',
+	  },
       {
         test: /\.css/,
         use: [
