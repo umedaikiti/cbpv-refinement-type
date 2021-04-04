@@ -1,4 +1,22 @@
+'use strict';
+
 import "./style.css";
+
+interface Term {
+	name: string;
+	type: string;
+	children: AST[];
+}
+interface Binder {
+	name: string;
+	type: string;
+	child: AST;
+}
+type AST = { Term: Term; } | { Binder: Binder; };
+interface Result {
+	smtlib?: string | null;
+	ast?: AST | null;
+}
 
 import("../pkg/").then(wasm => {
 	wasm.init();
@@ -11,10 +29,11 @@ import("../pkg/").then(wasm => {
 		select.appendChild(example);
 	});
 	select.addEventListener("change", (event) => {
-		(<HTMLInputElement>document.getElementById("input")).value = examples[(<HTMLInputElement>event.target).value];
+		let key = (event.target as HTMLInputElement).value as keyof (typeof examples);
+		(document.getElementById("input") as HTMLInputElement).value = examples[key];
 	});
-	function create_ast_list(ast) : HTMLElement {
-		if(ast.Term) {
+	function create_ast_list(ast : AST) : HTMLElement {
+		if("Term" in ast) {
 			let li = document.createElement("li");
 			let name_type = document.createElement("span");
 			name_type.appendChild(document.createTextNode(ast.Term.name + " : " + ast.Term.type));
@@ -33,7 +52,7 @@ import("../pkg/").then(wasm => {
 			}
 			li.appendChild(children);
 			return li;
-		} else if(ast.Binder) {
+		} else if("Binder" in ast) {
 			let li = document.createElement("li");
 			let name_type = document.createElement("span");
 			name_type.appendChild(document.createTextNode("[" + ast.Binder.name + " : " + ast.Binder.type + "]"));
@@ -43,17 +62,18 @@ import("../pkg/").then(wasm => {
 			li.appendChild(children);
 			return li;
 		}
+		const _exhaustiveCheck: never = ast;
 		console.log("error");
 	}
-	function show_result(result) {
-		let output = <HTMLInputElement>document.getElementById("output");
+	function show_result(result : Result) : void {
+		let output = document.getElementById("output") as HTMLInputElement;
 		if (result.smtlib === undefined || result.smtlib === null) {
 			output.value = "";
 			document.getElementById("download").removeAttribute("href");
 		} else {
 			output.value = result.smtlib;
 			let blob = new Blob([ result.smtlib ], { "type" : "text/plain" });;
-			(<HTMLAnchorElement>document.getElementById("download")).href = window.URL.createObjectURL(blob);
+			(document.getElementById("download") as HTMLAnchorElement).href = window.URL.createObjectURL(blob);
 		}
 		let ast_div = document.getElementById("ast");
 		while(ast_div.firstChild) {
@@ -67,15 +87,15 @@ import("../pkg/").then(wasm => {
 		}
 	}
 	document.getElementById("cbv-button").addEventListener("click", function() {
-		let input = <HTMLInputElement>document.getElementById("input");
-		let simplify = (<HTMLInputElement>document.getElementById("simplify")).checked;
-		let result = wasm.to_smtlib_cbv(input.value, simplify);
+		let input = document.getElementById("input") as HTMLInputElement;
+		let simplify = document.getElementById("simplify") as HTMLInputElement;
+		let result = wasm.to_smtlib_cbv(input.value, simplify.checked);
 		show_result(result);
 	});
 	document.getElementById("cbn-button").addEventListener("click", function() {
-		let input = <HTMLInputElement>document.getElementById("input");
-		let simplify = (<HTMLInputElement>document.getElementById("simplify")).checked;
-		let result = wasm.to_smtlib_cbn(input.value, simplify);
+		let input = document.getElementById("input") as HTMLInputElement;
+		let simplify = document.getElementById("simplify") as HTMLInputElement;
+		let result = wasm.to_smtlib_cbn(input.value, simplify.checked);
 		show_result(result);
 	});
 });
