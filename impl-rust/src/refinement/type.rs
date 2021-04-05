@@ -82,7 +82,7 @@ impl Value {
                 ca
             }
             (Value::U(c), Value::U(d)) => Computation::subtype(ctx, c, d),
-            (a, b) => panic!(format!("type mismatch: {} <-> {}", a, b)),
+            (a, b) => panic!("type mismatch: {} <-> {}", a, b),
         }
     }
     pub fn subst_term(&self, map: &HashMap<String, Term>) -> Value {

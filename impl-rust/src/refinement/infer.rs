@@ -130,7 +130,7 @@ pub fn value(
                 )
             }
             Some(a) => (Vec::new(), a.clone()),
-            None => panic!(format!("variable {} not found in the context", x)),
+            None => panic!("variable {} not found in the context", x),
         },
         term::Value::Unit => {
             let v = utils::mk_fresh_name("unit_val", &ctx.vars());
