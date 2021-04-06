@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ComputationTerm",""],["ValueTerm",""]],"fn":[["computation",""],["value",""]],"struct":[["Computation",""],["Value",""]]});
