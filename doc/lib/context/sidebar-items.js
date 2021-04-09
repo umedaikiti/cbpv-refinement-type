@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Context",""]]});
+initSidebarItems({"struct":[["Context","(Ordered) list of variables and their associated types."]]});

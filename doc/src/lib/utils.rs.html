@@ -47,9 +47,37 @@
 <span id="44">44</span>
 <span id="45">45</span>
 <span id="46">46</span>
+<span id="47">47</span>
+<span id="48">48</span>
+<span id="49">49</span>
+<span id="50">50</span>
+<span id="51">51</span>
+<span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">regex</span>::<span class="ident">Regex</span>;
 
+<span class="doccomment">/// Make a fresh name that is not in `exclude`.</span>
+<span class="doccomment">/// The fresh name is chosen based on `s`.</span>
+<span class="doccomment">/// # Examples</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">/// use lib::utils::mk_fresh_name;</span>
+<span class="doccomment">/// use std::collections::HashSet;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// let exclude: HashSet&lt;_&gt; = [&quot;x&quot;, &quot;y&quot;, &quot;z&quot;].iter().map(|s| s.to_string()).collect();</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// assert_eq!(&quot;a&quot;, mk_fresh_name(&quot;a&quot;, &amp;exclude));</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// let fresh_x = mk_fresh_name(&quot;x&quot;, &amp;exclude);</span>
+<span class="doccomment">/// assert!(!exclude.contains(&amp;fresh_x));</span>
+<span class="doccomment">/// ```</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">mk_fresh_name</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">exclude</span>: <span class="kw-2">&amp;</span><span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="macro">lazy_static</span><span class="macro">!</span> {
         <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">RE</span>: <span class="ident">Regex</span> <span class="op">=</span> <span class="ident">Regex</span>::<span class="ident">new</span>(<span class="string">&quot;^(?P&lt;base&gt;.*)!\\d+$&quot;</span>).<span class="ident">unwrap</span>();

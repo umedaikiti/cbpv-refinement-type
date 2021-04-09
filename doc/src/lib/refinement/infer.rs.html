@@ -458,6 +458,11 @@
 <span id="455">455</span>
 <span id="456">456</span>
 <span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">context</span>::<span class="ident">Context</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">logic</span>::{<span class="ident">Formula</span>, <span class="ident">Term</span>};
@@ -467,6 +472,9 @@
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">r#type</span> <span class="kw">as</span> <span class="ident">rtype</span>;
 
 <span class="kw">impl</span> <span class="ident">rtype</span>::<span class="ident">Value</span> {
+    <span class="doccomment">/// Make a template for a refinement type whose underlying type is `ut`.</span>
+    <span class="doccomment">/// Predicate symbols in the template is chosen so that they are fresh with respect to</span>
+    <span class="doccomment">/// `used_pvar`.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">refinement_template</span>(
         <span class="ident">ctx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Context</span><span class="op">&lt;</span><span class="ident">rtype</span>::<span class="ident">Value</span><span class="op">&gt;</span>,
         <span class="ident">ut</span>: <span class="kw-2">&amp;</span><span class="ident">utype</span>::<span class="ident">Value</span>,
@@ -569,6 +577,8 @@
     }
 }
 
+<span class="doccomment">/// Generate a list of conditions under which `v` is well-typed.</span>
+<span class="doccomment">/// The function `value` returns the list of conditions and (a template of) the type of `v`.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">value</span>(
     <span class="ident">ctx</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Context</span><span class="op">&lt;</span><span class="ident">rtype</span>::<span class="ident">Value</span><span class="op">&gt;</span>,
     <span class="ident">v</span>: <span class="kw-2">&amp;</span><span class="ident">term</span>::<span class="ident">Value</span>,

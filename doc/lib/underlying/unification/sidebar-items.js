@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Constraints",""]]});
+initSidebarItems({"enum":[["UnificationError",""]],"struct":[["Constraints","Unification problem."]]});

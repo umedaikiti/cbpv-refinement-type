@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Computation",""],["Value",""]]});
+initSidebarItems({"enum":[["Computation","Refinement computation type."],["Value","Refinement value type."]]});

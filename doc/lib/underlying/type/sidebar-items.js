@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Computation",""],["Value",""]],"struct":[["Map",""],["VarSet",""]]});
+initSidebarItems({"enum":[["Computation",""],["Value",""]],"struct":[["Map","Mapping from type variables to types."],["VarSet","Set of type variables."]]});

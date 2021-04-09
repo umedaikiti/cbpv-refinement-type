@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["computation",""],["value",""]]});
+initSidebarItems({"fn":[["computation",""],["value","Generate a list of conditions under which `v` is well-typed. The function `value` returns the list of conditions and (a template of) the type of `v`."]]});
