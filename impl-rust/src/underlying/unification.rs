@@ -1,10 +1,12 @@
 use super::r#type::{Computation, Map, Value};
 
+/// Unification problem.
 #[derive(Debug, Clone)]
 pub struct Constraints {
     pub value: Vec<(Value, Value)>,
     pub computation: Vec<(Computation, Computation)>,
 }
+
 impl Constraints {
     pub fn extend(&mut self, other: Constraints) {
         self.value.extend(other.value);
@@ -24,6 +26,7 @@ impl Constraints {
                 .collect(),
         }
     }
+    /// Return the most general unifier.
     pub fn unify(self) -> Result<Map, String> {
         unify_sub(self, Map::new())
     }

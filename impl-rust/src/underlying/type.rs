@@ -116,6 +116,7 @@ impl fmt::Display for Computation {
     }
 }
 
+/// Mapping from type variables to types.
 #[derive(Debug)]
 pub struct Map {
     pub value: HashMap<String, Value>,
@@ -171,6 +172,7 @@ impl Map {
     }
 }
 
+/// Set of type variables.
 pub struct VarSet {
     pub value: HashSet<String>,
     pub computation: HashSet<String>,
@@ -197,6 +199,7 @@ impl VarSet {
 static VALUE_COUNTER: Lazy<Mutex<i32>> = Lazy::new(|| Mutex::new(0));
 
 impl Value {
+    /// Make a fresh name for a value type variable.
     pub fn mk_fresh_name() -> String {
         let mut c = VALUE_COUNTER.lock().unwrap();
         let s = format!("var-val#{}", *c);

@@ -4,6 +4,7 @@ use super::super::underlying;
 use std::collections::HashMap;
 use std::fmt;
 
+/// Refinement value type.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
     Int(String, Formula),
@@ -14,6 +15,7 @@ pub enum Value {
     U(Box<Computation>),
 }
 
+/// Refinement computation type.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Computation {
     Function(String, Box<Value>, Box<Computation>),
@@ -21,6 +23,16 @@ pub enum Computation {
 }
 
 impl Value {
+    /// Erase predicates from refinement types.
+    /// # Examples
+    /// ```
+    /// use lib::context::Context;
+    /// use lib::logic::{Formula, Term};
+    /// use lib::refinement::r#type::Value;
+    ///
+    /// let int_type = Value::Int("x".to_string(), Formula::True);
+    /// assert_eq!(int_type.erase(), lib::underlying::r#type::Value::Int);
+    /// ```
     pub fn erase(&self) -> underlying::r#type::Value {
         match self {
             Value::Int(_, _) => underlying::r#type::Value::Int,
@@ -35,6 +47,20 @@ impl Value {
             Value::U(c) => underlying::r#type::Value::U(Box::new(c.erase())),
         }
     }
+
+    /// Generate conditions under which `a` is a subtype of `b` in the context `ctx`.
+    /// # Panics
+    /// The function panics if the underlying types of `a` and `b` are different.
+    /// ```rust,should_panic
+    /// use lib::context::Context;
+    /// use lib::logic::{Formula, Term};
+    /// use lib::refinement::r#type::Value;
+    ///
+    /// let mut ctx = Context::new();
+    /// let a = Value::Int("x".to_string(), Formula::True);
+    /// let b = Value::Unit("x".to_string(), Formula::True);
+    /// Value::subtype(&mut ctx, &a, &b);
+    /// ```
     pub fn subtype(
         ctx: &mut Context<Value>,
         a: &Value,
@@ -85,6 +111,7 @@ impl Value {
             (a, b) => panic!("type mismatch: {} <-> {}", a, b),
         }
     }
+
     pub fn subst_term(&self, map: &HashMap<String, Term>) -> Value {
         match self {
             Value::Int(x, f) => {

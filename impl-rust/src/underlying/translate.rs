@@ -8,7 +8,9 @@ use lambda::term::Term;
 use std::collections::{HashMap, HashSet};
 
 struct RenameContext {
+    /// Set of used variables.
     vars: HashSet<String>,
+    /// Map from original variables to renamed variables.
     map: HashMap<String, String>,
 }
 

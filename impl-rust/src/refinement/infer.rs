@@ -6,6 +6,9 @@ use super::super::utils;
 use super::r#type as rtype;
 
 impl rtype::Value {
+    /// Make a template for a refinement type whose underlying type is `ut`.
+    /// Predicate symbols in the template is chosen so that they are fresh with respect to
+    /// `used_pvar`.
     pub fn refinement_template(
         ctx: &mut Context<rtype::Value>,
         ut: &utype::Value,
@@ -108,6 +111,8 @@ impl rtype::Computation {
     }
 }
 
+/// Generate a list of conditions under which `v` is well-typed.
+/// The function `value` returns the list of conditions and (a template of) the type of `v`.
 pub fn value(
     ctx: &mut Context<rtype::Value>,
     v: &term::Value,

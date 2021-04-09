@@ -4,6 +4,7 @@ use super::term;
 use super::unification::Constraints;
 
 impl term::Value {
+    /// Hindley–Milner type inference.
     pub fn infer(
         &self,
         ctx: &mut Context<r#type::Value>,

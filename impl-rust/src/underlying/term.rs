@@ -15,6 +15,7 @@ pub enum Value {
 }
 
 impl Value {
+    /// Substitute types for type variables.
     pub fn subst_type(&self, map: &r#type::Map) -> Self {
         match self {
             Value::Var(x) => Value::Var(x.clone()),
@@ -42,6 +43,8 @@ impl Value {
             Value::Thunk(m) => Value::Thunk(Box::new(m.simplify(used_var))),
         }
     }
+    /// Substitute (value) terms for term variables.
+    /// Note that bound variables are alpha-renamed to remove shadowing.
     pub fn subst(&self, map: &HashMap<String, Value>, used_var: &HashSet<String>) -> Self {
         match self {
             Value::Var(x) => match map.get(x) {
@@ -59,6 +62,7 @@ impl Value {
             Value::Thunk(m) => Value::Thunk(Box::new(m.subst(map, used_var))),
         }
     }
+    /// Return the set of free type variables.
     pub fn free_type_vars(&self) -> VarSet {
         match self {
             Value::Var(_) | Value::Unit | Value::Int(_) => VarSet::new(),
@@ -339,6 +343,8 @@ impl Computation {
         }
     }
     // fv(map) is a subset of used_var
+    // used_var.is_superset(&map.keys().collect())
+    // && map.values().all(|t| used_var.is_superset(&t.fv()))
     pub fn subst(&self, map: &HashMap<String, Value>, used_var: &HashSet<String>) -> Self {
         fn rename_bvar<F, T>(
             x: &String,

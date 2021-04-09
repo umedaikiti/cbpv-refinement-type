@@ -1,5 +1,19 @@
 use regex::Regex;
 
+/// Make a fresh name that is not in `exclude`.
+/// The fresh name is chosen based on `s`.
+/// # Examples
+/// ```
+/// use lib::utils::mk_fresh_name;
+/// use std::collections::HashSet;
+///
+/// let exclude: HashSet<_> = ["x", "y", "z"].iter().map(|s| s.to_string()).collect();
+///
+/// assert_eq!("a", mk_fresh_name("a", &exclude));
+///
+/// let fresh_x = mk_fresh_name("x", &exclude);
+/// assert!(!exclude.contains(&fresh_x));
+/// ```
 pub fn mk_fresh_name(s: &str, exclude: &std::collections::HashSet<String>) -> String {
     lazy_static! {
         static ref RE: Regex = Regex::new("^(?P<base>.*)!\\d+$").unwrap();
