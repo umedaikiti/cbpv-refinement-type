@@ -261,7 +261,9 @@ fn to_smtlib(s: &str, ev: Strategy, simplify: bool) -> Result<(AST, String), Str
     } else {
         term
     };
-    let (m, ty) = term.infer(&mut Context::new())?;
+    let (m, ty) = term
+        .infer(&mut Context::new())
+        .or_else(|e| Err(e.to_string()))?;
     let term = term.subst_type(&m);
     log::debug!("HM type inference");
     log::debug!("{:?} : {}", term, ty.subst(&m));

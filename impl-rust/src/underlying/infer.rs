@@ -1,18 +1,27 @@
 use super::super::context::Context;
 use super::r#type;
 use super::term;
-use super::unification::Constraints;
+use super::unification::{Constraints, UnificationError};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum HMInferenceError {
+    #[error("unbound variable: {0}")]
+    UnboundVariable(String),
+    #[error("unification error: {0}")]
+    Unification(#[from] UnificationError),
+}
 
 impl term::Value {
     /// Hindley–Milner type inference.
     pub fn infer(
         &self,
         ctx: &mut Context<r#type::Value>,
-    ) -> Result<(r#type::Map, r#type::Value), String> {
+    ) -> Result<(r#type::Map, r#type::Value), HMInferenceError> {
         match self {
             term::Value::Var(x) => match ctx.get(x) {
                 Some(t) => Ok((r#type::Map::new(), t.clone())),
-                None => Err(format!("unbound variable: {}", x)),
+                None => Err(HMInferenceError::UnboundVariable(x.clone())),
             },
             term::Value::Unit => Ok((r#type::Map::new(), r#type::Value::Unit)),
             term::Value::Int(_) => Ok((r#type::Map::new(), r#type::Value::Int)),
@@ -44,7 +53,7 @@ impl term::Computation {
     pub fn infer(
         &self,
         ctx: &mut Context<r#type::Value>,
-    ) -> Result<(r#type::Map, r#type::Computation), String> {
+    ) -> Result<(r#type::Map, r#type::Computation), HMInferenceError> {
         match self {
             term::Computation::Return(v) => {
                 let (map, t) = v.infer(ctx)?;

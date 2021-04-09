@@ -1,4 +1,13 @@
 use super::r#type::{Computation, Map, Value};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum UnificationError {
+    #[error("cannot unify '{0}' and '{1}'")]
+    ValueMismatch(Value, Value),
+    #[error("cannot unify '{0}' and '{1}'")]
+    ComputationMismatch(Computation, Computation),
+}
 
 /// Unification problem.
 #[derive(Debug, Clone)]
@@ -27,12 +36,12 @@ impl Constraints {
         }
     }
     /// Return the most general unifier.
-    pub fn unify(self) -> Result<Map, String> {
+    pub fn unify(self) -> Result<Map, UnificationError> {
         unify_sub(self, Map::new())
     }
 }
 
-fn unify_sub(mut constraints: Constraints, map: Map) -> Result<Map, String> {
+fn unify_sub(mut constraints: Constraints, map: Map) -> Result<Map, UnificationError> {
     debug_assert!(map.dom().is_disjoint(&map.fv_cod()));
     match constraints.value.pop() {
         Some(c) => match c {
@@ -46,7 +55,7 @@ fn unify_sub(mut constraints: Constraints, map: Map) -> Result<Map, String> {
                     let t = t.subst(&map);
                     let fv = t.fv();
                     if fv.value.contains(&x) {
-                        Err(format!("{:?} != {:?}", Value::Var(x), t))
+                        Err(UnificationError::ValueMismatch(Value::Var(x), t))
                     } else {
                         let mut x2t = Map::new();
                         x2t.value.insert(x, t);
@@ -76,7 +85,7 @@ fn unify_sub(mut constraints: Constraints, map: Map) -> Result<Map, String> {
                 constraints.computation.push((*c1, *c2));
                 unify_sub(constraints, map)
             }
-            (t, u) => Err(format!("{:?} != {:?}", t, u)),
+            (t, u) => Err(UnificationError::ValueMismatch(t, u)),
         },
         None => match constraints.computation.pop() {
             Some(c) => match c {
@@ -90,7 +99,10 @@ fn unify_sub(mut constraints: Constraints, map: Map) -> Result<Map, String> {
                         let t = t.subst(&map);
                         let fv = t.fv();
                         if fv.computation.contains(&x) {
-                            Err(format!("{:?} != {:?}", Computation::Var(x), t))
+                            Err(UnificationError::ComputationMismatch(
+                                Computation::Var(x),
+                                t,
+                            ))
                         } else {
                             let mut x2t = Map::new();
                             x2t.computation.insert(x, t);
@@ -112,7 +124,7 @@ fn unify_sub(mut constraints: Constraints, map: Map) -> Result<Map, String> {
                     constraints.value.push((*a1, *a2));
                     unify_sub(constraints, map)
                 }
-                (t, u) => Err(format!("{:?} != {:?}", t, u)),
+                (t, u) => Err(UnificationError::ComputationMismatch(t, u)),
             },
             None => Ok(map),
         },
