@@ -208,7 +208,7 @@ impl term::Computation {
 fn test() {
     let mut ctx = Context::new();
     let (_, ty) = term::Computation::Add.infer(&mut ctx).unwrap();
-    assert_eq!(format!("{}", ty), "int -> int -> F int");
+    assert_eq!(ty.to_string(), "int -> int -> F int");
     let (_, ty) = term::Computation::Fail.infer(&mut ctx).unwrap();
-    assert_eq!(format!("{}", ty), "unit -> F empty");
+    assert_eq!(ty.to_string(), "unit -> F empty");
 }
