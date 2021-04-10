@@ -166,8 +166,10 @@
 <span id="163">163</span>
 <span id="164">164</span>
 <span id="165">165</span>
+<span id="166">166</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">context</span>::<span class="ident">Context</span>;
+<span class="kw">use</span> <span class="ident">num_bigint</span>::<span class="ident">BigInt</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
 
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Sort</span> {
@@ -188,7 +190,7 @@
     <span class="ident">Add</span>,
     <span class="ident">Sub</span>,
     <span class="ident">Mul</span>,
-    <span class="ident">Int</span>(<span class="ident">i64</span>),
+    <span class="ident">Int</span>(<span class="ident">BigInt</span>),
     <span class="ident">True</span>,
     <span class="ident">False</span>,
 }

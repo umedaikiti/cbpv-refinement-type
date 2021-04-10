@@ -577,17 +577,19 @@
 <span id="574">574</span>
 <span id="575">575</span>
 <span id="576">576</span>
+<span id="577">577</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">utils</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">r#type</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">r#type</span>::<span class="ident">VarSet</span>;
+<span class="kw">use</span> <span class="ident">num_bigint</span>::<span class="ident">BigInt</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::{<span class="ident">HashMap</span>, <span class="ident">HashSet</span>};
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Value</span> {
     <span class="ident">Var</span>(<span class="ident">String</span>),
     <span class="ident">Unit</span>,
-    <span class="ident">Int</span>(<span class="ident">i64</span>),
+    <span class="ident">Int</span>(<span class="ident">BigInt</span>),
     <span class="ident">Pair</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>),
     <span class="ident">Inr</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">r#type</span>::<span class="ident">Value</span>),
     <span class="ident">Inl</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">r#type</span>::<span class="ident">Value</span>),
@@ -600,7 +602,7 @@
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="ident">Value</span>::<span class="ident">Var</span>(<span class="ident">x</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Var</span>(<span class="ident">x</span>.<span class="ident">clone</span>()),
             <span class="ident">Value</span>::<span class="ident">Unit</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Unit</span>,
-            <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="kw-2">*</span><span class="ident">i</span>),
+            <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>.<span class="ident">clone</span>()),
             <span class="ident">Value</span>::<span class="ident">Pair</span>(<span class="ident">v</span>, <span class="ident">w</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="ident">Value</span>::<span class="ident">Pair</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">v</span>.<span class="ident">subst_type</span>(<span class="ident">map</span>)), <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">w</span>.<span class="ident">subst_type</span>(<span class="ident">map</span>)))
             }
@@ -613,7 +615,7 @@
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="ident">Value</span>::<span class="ident">Var</span>(<span class="ident">x</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Var</span>(<span class="ident">x</span>.<span class="ident">clone</span>()),
             <span class="ident">Value</span>::<span class="ident">Unit</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Unit</span>,
-            <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="kw-2">*</span><span class="ident">i</span>),
+            <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>.<span class="ident">clone</span>()),
             <span class="ident">Value</span>::<span class="ident">Pair</span>(<span class="ident">v</span>, <span class="ident">w</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Pair</span>(
                 <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">v</span>.<span class="ident">simplify</span>(<span class="ident">used_var</span>)),
                 <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">w</span>.<span class="ident">simplify</span>(<span class="ident">used_var</span>)),
@@ -632,7 +634,7 @@
                 <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Var</span>(<span class="ident">x</span>.<span class="ident">clone</span>()),
             },
             <span class="ident">Value</span>::<span class="ident">Unit</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Unit</span>,
-            <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="kw-2">*</span><span class="ident">i</span>),
+            <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>.<span class="ident">clone</span>()),
             <span class="ident">Value</span>::<span class="ident">Pair</span>(<span class="ident">v</span>, <span class="ident">w</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Value</span>::<span class="ident">Pair</span>(
                 <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">v</span>.<span class="ident">subst</span>(<span class="ident">map</span>, <span class="ident">used_var</span>)),
                 <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">w</span>.<span class="ident">subst</span>(<span class="ident">map</span>, <span class="ident">used_var</span>)),

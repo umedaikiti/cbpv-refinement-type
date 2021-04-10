@@ -817,12 +817,17 @@
 <span id="814">814</span>
 <span id="815">815</span>
 <span id="816">816</span>
+<span id="817">817</span>
+<span id="818">818</span>
+<span id="819">819</span>
+<span id="820">820</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">context</span>::<span class="ident">Context</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">smtlib</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">underlying</span>::<span class="ident">r#type</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">underlying</span>::<span class="ident">term</span>::<span class="ident">Value</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">utils</span>;
+<span class="kw">use</span> <span class="ident">num_bigint</span>::<span class="ident">BigInt</span>;
 <span class="kw">use</span> <span class="ident">once_cell</span>::<span class="ident">sync</span>::<span class="ident">Lazy</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::{<span class="ident">HashMap</span>, <span class="ident">HashSet</span>};
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">fmt</span>;
@@ -832,7 +837,7 @@
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Term</span> {
     <span class="ident">Var</span>(<span class="ident">String</span>),
     <span class="ident">Unit</span>,
-    <span class="ident">Int</span>(<span class="ident">i64</span>),
+    <span class="ident">Int</span>(<span class="ident">BigInt</span>),
     <span class="ident">Pair</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Term</span><span class="op">&gt;</span>, <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Term</span><span class="op">&gt;</span>),
     <span class="ident">Inl</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Term</span><span class="op">&gt;</span>),
     <span class="ident">Inr</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Term</span><span class="op">&gt;</span>),
@@ -846,7 +851,7 @@
                 <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Term</span>::<span class="ident">Var</span>(<span class="ident">x</span>.<span class="ident">clone</span>()),
             },
             <span class="ident">Term</span>::<span class="ident">Unit</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Term</span>::<span class="ident">Unit</span>,
-            <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="kw-2">*</span><span class="ident">i</span>),
+            <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>.<span class="ident">clone</span>()),
             <span class="ident">Term</span>::<span class="ident">Pair</span>(<span class="ident">s</span>, <span class="ident">t</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Term</span>::<span class="ident">Pair</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">s</span>.<span class="ident">subst</span>(<span class="ident">map</span>)), <span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">t</span>.<span class="ident">subst</span>(<span class="ident">map</span>))),
             <span class="ident">Term</span>::<span class="ident">Inl</span>(<span class="ident">t</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Term</span>::<span class="ident">Inl</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">t</span>.<span class="ident">subst</span>(<span class="ident">map</span>))),
             <span class="ident">Term</span>::<span class="ident">Inr</span>(<span class="ident">t</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Term</span>::<span class="ident">Inr</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">t</span>.<span class="ident">subst</span>(<span class="ident">map</span>))),
@@ -869,7 +874,7 @@
         <span class="kw">match</span> <span class="ident">v</span> {
             <span class="ident">Value</span>::<span class="ident">Var</span>(<span class="ident">x</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">Term</span>::<span class="ident">Var</span>(<span class="ident">x</span>.<span class="ident">clone</span>())),
             <span class="ident">Value</span>::<span class="ident">Unit</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">Term</span>::<span class="ident">Unit</span>),
-            <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">Term</span>::<span class="ident">Int</span>(<span class="kw-2">*</span><span class="ident">i</span>)),
+            <span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>.<span class="ident">clone</span>())),
             <span class="ident">Value</span>::<span class="ident">Pair</span>(<span class="ident">v</span>, <span class="ident">w</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">v</span> <span class="op">=</span> <span class="ident">Term</span>::<span class="ident">from_underlying_value</span>(<span class="ident">v</span>)<span class="question-mark">?</span>;
                 <span class="kw">let</span> <span class="ident">w</span> <span class="op">=</span> <span class="ident">Term</span>::<span class="ident">from_underlying_value</span>(<span class="ident">w</span>)<span class="question-mark">?</span>;
@@ -889,7 +894,10 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_smtlib</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">smtlib</span>::<span class="ident">Term</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="self">self</span> {
             <span class="ident">Term</span>::<span class="ident">Var</span>(<span class="ident">x</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">smtlib</span>::<span class="ident">Term</span>::<span class="ident">Var</span>(<span class="ident">x</span>.<span class="ident">clone</span>())),
-            <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">smtlib</span>::<span class="ident">Term</span>::<span class="ident">App</span>(<span class="ident">smtlib</span>::<span class="ident">Operation</span>::<span class="ident">Int</span>(<span class="kw-2">*</span><span class="ident">i</span>), <span class="ident">Vec</span>::<span class="ident">new</span>())),
+            <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">smtlib</span>::<span class="ident">Term</span>::<span class="ident">App</span>(
+                <span class="ident">smtlib</span>::<span class="ident">Operation</span>::<span class="ident">Int</span>(<span class="ident">i</span>.<span class="ident">clone</span>()),
+                <span class="ident">Vec</span>::<span class="ident">new</span>(),
+            )),
             <span class="ident">Term</span>::<span class="ident">Inl</span>(<span class="ident">t</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">match</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">t</span> {
                 <span class="ident">Term</span>::<span class="ident">Unit</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">smtlib</span>::<span class="ident">Term</span>::<span class="ident">App</span>(<span class="ident">smtlib</span>::<span class="ident">Operation</span>::<span class="ident">True</span>, <span class="ident">Vec</span>::<span class="ident">new</span>())),
                 <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
@@ -909,7 +917,7 @@
     <span class="kw">fn</span> <span class="ident">pattern_match</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="ident">Term</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">Term</span><span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="kw">match</span> (<span class="self">self</span>, <span class="ident">other</span>) {
             (<span class="ident">Term</span>::<span class="ident">Var</span>(<span class="ident">x</span>), <span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="macro">vec</span><span class="macro">!</span>[(<span class="ident">x</span>.<span class="ident">clone</span>(), <span class="ident">other</span>.<span class="ident">clone</span>())].<span class="ident">into_iter</span>().<span class="ident">collect</span>()),
-            (<span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>), <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">j</span>)) <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">i</span> <span class="op">=</span><span class="op">=</span> <span class="kw-2">*</span><span class="ident">j</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">HashMap</span>::<span class="ident">new</span>()),
+            (<span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>), <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">j</span>)) <span class="kw">if</span> <span class="ident">i</span> <span class="op">=</span><span class="op">=</span> <span class="ident">j</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">HashMap</span>::<span class="ident">new</span>()),
             (<span class="ident">Term</span>::<span class="ident">Unit</span>, <span class="ident">Term</span>::<span class="ident">Unit</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">HashMap</span>::<span class="ident">new</span>()),
             (<span class="ident">Term</span>::<span class="ident">Inl</span>(<span class="ident">pattern</span>), <span class="ident">Term</span>::<span class="ident">Inl</span>(<span class="ident">t</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">pattern</span>.<span class="ident">pattern_match</span>(<span class="ident">t</span>),
             (<span class="ident">Term</span>::<span class="ident">Inr</span>(<span class="ident">pattern</span>), <span class="ident">Term</span>::<span class="ident">Inr</span>(<span class="ident">t</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">pattern</span>.<span class="ident">pattern_match</span>(<span class="ident">t</span>),

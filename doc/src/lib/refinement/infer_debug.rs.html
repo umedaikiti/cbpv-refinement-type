@@ -544,6 +544,10 @@
 <span id="541">541</span>
 <span id="542">542</span>
 <span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">context</span>::<span class="ident">Context</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">logic</span>::{<span class="ident">Formula</span>, <span class="ident">Term</span>};
@@ -551,6 +555,7 @@
 <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">underlying</span>::<span class="ident">term</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="kw">super</span>::<span class="ident">utils</span>;
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">r#type</span> <span class="kw">as</span> <span class="ident">rtype</span>;
+<span class="kw">use</span> <span class="ident">num_bigint</span>::<span class="ident">BigInt</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Value</span> {
@@ -562,7 +567,7 @@
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ValueTerm</span> {
     <span class="ident">Var</span>(<span class="ident">String</span>),
     <span class="ident">Unit</span>,
-    <span class="ident">Int</span>(<span class="ident">i64</span>),
+    <span class="ident">Int</span>(<span class="ident">BigInt</span>),
     <span class="ident">Pair</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>),
     <span class="ident">Inr</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">rtype</span>::<span class="ident">Value</span>),
     <span class="ident">Inl</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">rtype</span>::<span class="ident">Value</span>),
@@ -657,8 +662,11 @@
             (
                 <span class="ident">Vec</span>::<span class="ident">new</span>(),
                 <span class="ident">Value</span> {
-                    <span class="ident">term</span>: <span class="ident">ValueTerm</span>::<span class="ident">Int</span>(<span class="kw-2">*</span><span class="ident">i</span>),
-                    <span class="ident">ty</span>: <span class="ident">rtype</span>::<span class="ident">Value</span>::<span class="ident">Int</span>(<span class="ident">v</span>.<span class="ident">clone</span>(), <span class="ident">Formula</span>::<span class="ident">Equal</span>(<span class="ident">Term</span>::<span class="ident">Var</span>(<span class="ident">v</span>), <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="kw-2">*</span><span class="ident">i</span>))),
+                    <span class="ident">term</span>: <span class="ident">ValueTerm</span>::<span class="ident">Int</span>(<span class="ident">i</span>.<span class="ident">clone</span>()),
+                    <span class="ident">ty</span>: <span class="ident">rtype</span>::<span class="ident">Value</span>::<span class="ident">Int</span>(
+                        <span class="ident">v</span>.<span class="ident">clone</span>(),
+                        <span class="ident">Formula</span>::<span class="ident">Equal</span>(<span class="ident">Term</span>::<span class="ident">Var</span>(<span class="ident">v</span>), <span class="ident">Term</span>::<span class="ident">Int</span>(<span class="ident">i</span>.<span class="ident">clone</span>())),
+                    ),
                 },
             )
         }
