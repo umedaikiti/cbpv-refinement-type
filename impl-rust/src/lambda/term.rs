@@ -1,10 +1,12 @@
+use num_bigint::BigInt;
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Term {
     Var(String),
     Lambda(String, Box<Term>),
     App(Box<Term>, Box<Term>),
     Unit,
-    Int(i64),
+    Int(BigInt),
     NDInt,
     Pair(Box<Term>, Box<Term>),
     Inr(Box<Term>),

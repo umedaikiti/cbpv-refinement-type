@@ -1,4 +1,5 @@
 use super::context::Context;
+use num_bigint::BigInt;
 use std::fmt;
 
 pub enum Sort {
@@ -19,7 +20,7 @@ pub enum Operation {
     Add,
     Sub,
     Mul,
-    Int(i64),
+    Int(BigInt),
     True,
     False,
 }

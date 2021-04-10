@@ -1,13 +1,14 @@
 use super::super::utils;
 use super::r#type;
 use super::r#type::VarSet;
+use num_bigint::BigInt;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
     Var(String),
     Unit,
-    Int(i64),
+    Int(BigInt),
     Pair(Box<Value>, Box<Value>),
     Inr(Box<Value>, r#type::Value),
     Inl(Box<Value>, r#type::Value),
@@ -20,7 +21,7 @@ impl Value {
         match self {
             Value::Var(x) => Value::Var(x.clone()),
             Value::Unit => Value::Unit,
-            Value::Int(i) => Value::Int(*i),
+            Value::Int(i) => Value::Int(i.clone()),
             Value::Pair(v, w) => {
                 Value::Pair(Box::new(v.subst_type(map)), Box::new(w.subst_type(map)))
             }
@@ -33,7 +34,7 @@ impl Value {
         match self {
             Value::Var(x) => Value::Var(x.clone()),
             Value::Unit => Value::Unit,
-            Value::Int(i) => Value::Int(*i),
+            Value::Int(i) => Value::Int(i.clone()),
             Value::Pair(v, w) => Value::Pair(
                 Box::new(v.simplify(used_var)),
                 Box::new(w.simplify(used_var)),
@@ -52,7 +53,7 @@ impl Value {
                 None => Value::Var(x.clone()),
             },
             Value::Unit => Value::Unit,
-            Value::Int(i) => Value::Int(*i),
+            Value::Int(i) => Value::Int(i.clone()),
             Value::Pair(v, w) => Value::Pair(
                 Box::new(v.subst(map, used_var)),
                 Box::new(w.subst(map, used_var)),

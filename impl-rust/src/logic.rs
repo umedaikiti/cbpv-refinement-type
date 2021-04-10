@@ -3,6 +3,7 @@ use super::smtlib;
 use super::underlying::r#type;
 use super::underlying::term::Value;
 use super::utils;
+use num_bigint::BigInt;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -12,7 +13,7 @@ use std::sync::Mutex;
 pub enum Term {
     Var(String),
     Unit,
-    Int(i64),
+    Int(BigInt),
     Pair(Box<Term>, Box<Term>),
     Inl(Box<Term>),
     Inr(Box<Term>),
@@ -26,7 +27,7 @@ impl Term {
                 None => Term::Var(x.clone()),
             },
             Term::Unit => Term::Unit,
-            Term::Int(i) => Term::Int(*i),
+            Term::Int(i) => Term::Int(i.clone()),
             Term::Pair(s, t) => Term::Pair(Box::new(s.subst(map)), Box::new(t.subst(map))),
             Term::Inl(t) => Term::Inl(Box::new(t.subst(map))),
             Term::Inr(t) => Term::Inr(Box::new(t.subst(map))),
@@ -49,7 +50,7 @@ impl Term {
         match v {
             Value::Var(x) => Ok(Term::Var(x.clone())),
             Value::Unit => Ok(Term::Unit),
-            Value::Int(i) => Ok(Term::Int(*i)),
+            Value::Int(i) => Ok(Term::Int(i.clone())),
             Value::Pair(v, w) => {
                 let v = Term::from_underlying_value(v)?;
                 let w = Term::from_underlying_value(w)?;
@@ -69,7 +70,10 @@ impl Term {
     pub fn to_smtlib(&self) -> Option<smtlib::Term> {
         match self {
             Term::Var(x) => Some(smtlib::Term::Var(x.clone())),
-            Term::Int(i) => Some(smtlib::Term::App(smtlib::Operation::Int(*i), Vec::new())),
+            Term::Int(i) => Some(smtlib::Term::App(
+                smtlib::Operation::Int(i.clone()),
+                Vec::new(),
+            )),
             Term::Inl(t) => match **t {
                 Term::Unit => Some(smtlib::Term::App(smtlib::Operation::True, Vec::new())),
                 _ => None,
@@ -89,7 +93,7 @@ impl Term {
     fn pattern_match(&self, other: &Term) -> Option<HashMap<String, Term>> {
         match (self, other) {
             (Term::Var(x), _) => Some(vec![(x.clone(), other.clone())].into_iter().collect()),
-            (Term::Int(i), Term::Int(j)) if *i == *j => Some(HashMap::new()),
+            (Term::Int(i), Term::Int(j)) if i == j => Some(HashMap::new()),
             (Term::Unit, Term::Unit) => Some(HashMap::new()),
             (Term::Inl(pattern), Term::Inl(t)) => pattern.pattern_match(t),
             (Term::Inr(pattern), Term::Inr(t)) => pattern.pattern_match(t),

@@ -4,6 +4,7 @@ use super::super::underlying::r#type as utype;
 use super::super::underlying::term;
 use super::super::utils;
 use super::r#type as rtype;
+use num_bigint::BigInt;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Value {
@@ -15,7 +16,7 @@ pub struct Value {
 pub enum ValueTerm {
     Var(String),
     Unit,
-    Int(i64),
+    Int(BigInt),
     Pair(Box<Value>, Box<Value>),
     Inr(Box<Value>, rtype::Value),
     Inl(Box<Value>, rtype::Value),
@@ -110,8 +111,11 @@ pub fn value(
             (
                 Vec::new(),
                 Value {
-                    term: ValueTerm::Int(*i),
-                    ty: rtype::Value::Int(v.clone(), Formula::Equal(Term::Var(v), Term::Int(*i))),
+                    term: ValueTerm::Int(i.clone()),
+                    ty: rtype::Value::Int(
+                        v.clone(),
+                        Formula::Equal(Term::Var(v), Term::Int(i.clone())),
+                    ),
                 },
             )
         }

@@ -3,6 +3,8 @@ use nom::{
     branch::alt, bytes::complete::tag, character::complete::*, combinator::*, multi::*,
     sequence::*, IResult,
 };
+use num_bigint::BigInt;
+use num_traits::Num;
 
 fn ident(s: &str) -> IResult<&str, String> {
     let reserved = [
@@ -140,7 +142,7 @@ fn pattern_match(s: &str) -> IResult<&str, Term> {
 fn integer(s: &str) -> IResult<&str, Term> {
     let (s, i) = map_res(
         recognize(nom::sequence::pair(many_m_n(0, 1, tag("-")), digit1)),
-        |i| i64::from_str_radix(i, 10),
+        |i| BigInt::from_str_radix(i, 10),
     )(s)?;
     Ok((s, Term::Int(i)))
 }

@@ -145,7 +145,10 @@ pub fn value(
             let v = utils::mk_fresh_name(&format!("int_const_{}", i), &ctx.vars());
             (
                 Vec::new(),
-                rtype::Value::Int(v.clone(), Formula::Equal(Term::Var(v), Term::Int(*i))),
+                rtype::Value::Int(
+                    v.clone(),
+                    Formula::Equal(Term::Var(v), Term::Int(i.clone())),
+                ),
             )
         }
         term::Value::Pair(v, w) => {

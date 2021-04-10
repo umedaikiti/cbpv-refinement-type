@@ -125,7 +125,7 @@ fn cbv_of_operation(
 fn cbv_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
     match term {
         Term::Var(x) => Computation::Return(Box::new(Value::Var(rctx.rename(x)))),
-        Term::Int(i) => Computation::Return(Box::new(Value::Int(*i))),
+        Term::Int(i) => Computation::Return(Box::new(Value::Int(i.clone()))),
         Term::Lambda(x, m) => {
             let x_new = rctx.add(x);
             let save_x = rctx.register_rename(x, &x_new);
@@ -372,7 +372,7 @@ fn cbn_of_operation(
 fn cbn_of_lambda_sub(term: &Term, rctx: &mut RenameContext) -> Computation {
     match term {
         Term::Var(x) => Computation::Force(Box::new(Value::Var(rctx.rename(x)))),
-        Term::Int(i) => Computation::Return(Box::new(Value::Int(*i))),
+        Term::Int(i) => Computation::Return(Box::new(Value::Int(i.clone()))),
         Term::Lambda(x, m) => {
             let x_new = rctx.add(x);
             let save_x = rctx.register_rename(x, &x_new);
