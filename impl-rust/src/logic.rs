@@ -547,6 +547,16 @@ impl r#type::Value {
     }
 }
 
+pub struct UniversallyQuantifiedFormula {
+    pub bv: Context<r#type::Value>,
+    pub fml: Formula,
+}
+impl UniversallyQuantifiedFormula {
+    pub fn new(bv: Context<r#type::Value>, fml: Formula) -> UniversallyQuantifiedFormula {
+        UniversallyQuantifiedFormula { bv: bv, fml: fml }
+    }
+}
+
 pub fn to_smtlib(
     pctx: &Context<Vec<r#type::Value>>,
     constraints: &Vec<(Context<r#type::Value>, Formula)>,

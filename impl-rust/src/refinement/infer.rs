@@ -7,8 +7,23 @@ use super::r#type as rtype;
 
 impl rtype::Value {
     /// Make a template for a refinement type whose underlying type is `ut`.
-    /// Predicate symbols in the template is chosen so that they are fresh with respect to
-    /// `used_pvar`.
+    ///
+    /// Predicate symbols in the template are generated so that they are fresh with respect to
+    /// `used_pvar` and added to `used_pvar`.
+    /// # Panics
+    /// The function panics if `ut` contains type variables.
+    /// ```rust,should_panic
+    /// use lib::underlying::r#type as utype;
+    /// use lib::refinement::r#type as rtype;
+    /// use lib::context::Context;
+    ///
+    /// rtype::Value::refinement_template(
+    ///     &mut Context::new(),
+    ///     &utype::Value::Var("a".to_string()),
+    ///     &mut Context::new(),
+    ///     "x"
+    /// );
+    /// ```
     pub fn refinement_template(
         ctx: &mut Context<rtype::Value>,
         ut: &utype::Value,
@@ -112,7 +127,10 @@ impl rtype::Computation {
 }
 
 /// Generate a list of conditions under which `v` is well-typed.
+///
 /// The function `value` returns the list of conditions and (a template of) the type of `v`.
+/// Fresh predicate variables may be generated for templates of refinement types and added to
+/// `used_pvar`.
 pub fn value(
     ctx: &mut Context<rtype::Value>,
     v: &term::Value,

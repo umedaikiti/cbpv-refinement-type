@@ -2,6 +2,12 @@ extern crate lib;
 extern crate nom;
 use lib::lambda::term::Term;
 
+#[cfg(test)]
+extern crate quickcheck;
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
 #[test]
 fn test() {
     let cases = vec![
@@ -30,5 +36,18 @@ fn test() {
             nom::combinator::all_consuming(lib::lambda::parser::term)(s),
             Ok(("", t))
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use lib::lambda::term::Term;
+    #[quickcheck]
+    fn fake(s: String) -> bool {
+        if s == "" {
+            return true;
+        }
+        nom::combinator::all_consuming(lib::lambda::parser::term)(&s)
+            == Ok(("", Term::Var(s.clone())))
     }
 }
